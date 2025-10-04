@@ -77,8 +77,12 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
+        send_tasks = [connection.send_text(message) for connection in self.active_connections]
+        results = await asyncio.gather(*send_tasks, return_exceptions=True)
+
+        for i in range(len(self.active_connections) - 1, -1, -1):
+            if isinstance(results[i], Exception):
+                self.active_connections.pop(i)
 
 manager = ConnectionManager()
 
