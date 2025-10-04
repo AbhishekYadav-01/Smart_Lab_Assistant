@@ -53,3 +53,7 @@ pydantic[email]
 sqlalchemy
 python-jose
 passlib
+databases[postgresql]
+psycopg2-binary
+python-jose[cryptography]
+passlib[bcrypt]
