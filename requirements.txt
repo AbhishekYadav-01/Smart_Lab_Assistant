@@ -51,3 +51,4 @@ python-multipart
 # Note: Python 3.10+ required 
 pydantic[email]                                                 
 sqlalchemy
+python-jose

@@ -160,14 +160,14 @@ async def admin_page(request: Request, current_user: User = Depends(get_current_
     all_labs = await database.fetch_all(labs.select())
 
     # --- NEW: Fetch all bookings with user and lab names ---
-    query = sqlalchemy.select([
+    query = sqlalchemy.select(
         bookings.c.id,
         bookings.c.start_time,
         bookings.c.end_time,
         bookings.c.student_count,
         users.c.full_name.label('booked_by_name'),
         labs.c.name.label('lab_name')
-    ]).select_from(
+    ).select_from(
         bookings.join(users, bookings.c.user_id == users.c.id)
         .join(labs, bookings.c.lab_id == labs.c.id)
     ).order_by(sqlalchemy.desc(bookings.c.start_time))
