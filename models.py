@@ -1,8 +1,6 @@
-# models.py
 import sqlalchemy
 from database import metadata
 
-# Define the 'users' table
 users = sqlalchemy.Table(
     "users",
     metadata,
@@ -14,7 +12,6 @@ users = sqlalchemy.Table(
     sqlalchemy.Column("role", sqlalchemy.String, default="student"),
 )
 
-# Define the 'labs' table
 labs = sqlalchemy.Table(
     "labs",
     metadata,
@@ -27,7 +24,6 @@ labs = sqlalchemy.Table(
     sqlalchemy.Column("operating_end_time", sqlalchemy.Time, nullable=True),
 )
 
-# Define the 'bookings' table
 bookings = sqlalchemy.Table(
     "bookings",
     metadata,
@@ -37,6 +33,6 @@ bookings = sqlalchemy.Table(
     sqlalchemy.Column("start_time", sqlalchemy.DateTime),
     sqlalchemy.Column("end_time", sqlalchemy.DateTime),
     sqlalchemy.Column("student_count", sqlalchemy.Integer),
-    sqlalchemy.Column("booked_by", sqlalchemy.String), # Keep username for easy access
-    sqlalchemy.Column("priority", sqlalchemy.Integer, default=3), # Add priority with a default value
+    sqlalchemy.Column("booked_by", sqlalchemy.String),
+    sqlalchemy.Column("priority", sqlalchemy.Integer, default=3),
 )

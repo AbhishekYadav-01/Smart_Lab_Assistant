@@ -27,7 +27,6 @@ class HeadLabAssistantAgent:
         )
         self.reputation_scores = {name: 10 for name in all_lab_agent_names}
 
-    # --- MODIFIED parse_user_query METHOD ---
     async def parse_user_query(self, query_text: str) -> Optional[Dict]:
         """Uses an LLM to parse a natural language query into a structured dictionary."""
         
@@ -65,15 +64,6 @@ class LabAgent:
         self.lab_name = lab_name
         self.name = f"LabAgent_{lab_name.replace(' ', '_')}"
         self.capacity = capacity
-        # self.schedule: List[Booking] = []
-        # if self.lab_name == "AI Lab":
-        #     self.schedule.append(Booking(
-        #         booked_by="AI Research Group",
-        #         start_time=datetime.now().replace(hour=14, minute=0, second=0, microsecond=0),
-        #         end_time=datetime.now().replace(hour=16, minute=0, second=0, microsecond=0),
-        #         student_count=25,
-        #         flexibility_minutes=30
-        #     ))
         self.agent = AssistantAgent(
             name=self.name, model_client=model_client,
             system_message=f"You are the assistant for {self.lab_name} with a capacity of {self.capacity} students. You manage its schedule. You must evaluate proposals to shift existing bookings based on their priority and your flexibility. You can ACCEPT, REJECT, or make a COUNTER-OFFER (e.g., 'I can only shift by 15 minutes')."
@@ -91,7 +81,6 @@ class LabAgent:
             booking_start = booking_data["start_time"]
             booking_end = booking_data["end_time"]
             
-            # if max(booking_start, request_start) < min(booking_end, request_end):
             if (request_start < booking_end) and (request_end > booking_start):
                 conflict_details = {
                     "status": "CONFLICT_RIGID", 
@@ -104,7 +93,6 @@ class LabAgent:
     
 
     def add_booking(self, start_time: datetime, end_time: datetime, booked_by: str, student_count: int) -> bool:
-        # We need a synchronous version for this internal check
         is_available = True
         for booking in self.schedule:
             if max(booking.start_time, start_time) < min(booking.end_time, end_time):
@@ -120,7 +108,6 @@ class LabAgent:
         booking_to_shift.end_time += timedelta(minutes=minutes)
         return True
 
-    # --- ENHANCED: evaluate_proposal with more context ---
     async def evaluate_proposal(self, proposal: str, existing_booking: Booking, requester_reputation: int) -> str:
         evaluation_task = f"""
         You are the agent for {self.lab_name}.
@@ -139,21 +126,13 @@ class LabAgent:
         """
         response = await self.agent.run(task=evaluation_task)
         return str(response.messages[-1].content)
-    
-    
-    # In agents.py, add this method to the LabAgent class
-
-# In agents.py, inside the LabAgent class
 
     async def cancel_booking(self, start_time: datetime, user_to_cancel: User) -> bool:
-        """Finds and removes a booking from the database, but only if the user is the owner OR a super_admin."""
-        # Find the lab's ID
         lab_query = labs.select().where(labs.c.name == self.lab_name)
         lab_record = await database.fetch_one(lab_query)
         if not lab_record:
             return False, "Lab not found."
 
-        # Find the specific booking
         booking_query = bookings.select().where(
             bookings.c.lab_id == lab_record.id,
             bookings.c.start_time == start_time
@@ -161,7 +140,6 @@ class LabAgent:
         booking_to_remove = await database.fetch_one(booking_query)
         
         if booking_to_remove:
-                        # --- PERMISSION CHECK ---
             is_owner = booking_to_remove.booked_by == user_to_cancel.username
             is_admin = user_to_cancel.role == 'super_admin'
             if is_owner or is_admin:
@@ -169,7 +147,6 @@ class LabAgent:
                 await database.execute(delete_query)
                 return True, "Booking cancelled successfully."
             else:
-                # Return the specific permission error message
                 error_msg = f"PERMISSION DENIED: {user_to_cancel.username} tried to cancel a booking owned by {booking_to_remove.booked_by}."
                 print(error_msg)
                 return False, error_msg

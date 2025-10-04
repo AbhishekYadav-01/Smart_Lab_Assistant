@@ -12,12 +12,7 @@ from database import database
 from models import users, labs, bookings
 
 class MultiAgentTrafficSystem:
-    """Main system orchestrating all agents"""
-
     def __init__(self, current_user: User, manager: 'ConnectionManager'):
-        """
-        Initializes the system for a specific, authenticated user.
-        """
         self.current_user = current_user
         self.manager = manager 
         self.head_assistant_agent = HeadLabAssistantAgent() 
@@ -25,27 +20,19 @@ class MultiAgentTrafficSystem:
         self.agent_map: Dict[str, LabAgent] = {}
 
     async def broadcast_schedule_update(self):
-        """Fetches the latest weekly schedule and broadcasts it to all clients."""
         today = datetime.now()
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=7)
         schedule_data = await self.get_schedule_for_range(start_of_week, end_of_week)
         await self.manager.broadcast(json.dumps({"type": "schedule_update", "data": schedule_data}))
 
-        
     async def get_full_schedule(self) -> dict:
-            """Gathers all schedule data by querying the database."""
             today = datetime.now()
             start_of_week = today - timedelta(days=today.weekday())
             end_of_week = start_of_week + timedelta(days=7)
             return await self.get_schedule_for_range(start_of_week, end_of_week)
-        
-    
-    # --- THIS IS THE MODIFIED METHOD ---
+
     async def handle_availability_query(self, query_text: str, websocket: fastapi.WebSocket):
-        """
-        Orchestrates the handling of a user's availability query with intelligent filtering.
-        """
         async def send_update(msg_type, data):
             await websocket.send_text(json.dumps({"type": msg_type, "data": data}))
 
@@ -57,13 +44,12 @@ class MultiAgentTrafficSystem:
                 await send_update("error", "Sorry, I could not understand the time and date from your request. Please be more specific.")
                 return
 
-            # Extract details from the parsed request
             student_count = parsed_request.get("student_count", 1)
             requested_lab_name = parsed_request.get("lab_name")
             requested_equipment = parsed_request.get("equipment")
             
             await send_update("log", f"Parsed Request: Looking for slots on {parsed_request['date']} from {parsed_request['start_time']} to {parsed_request['end_time']}.")
-            
+
             try:
                 date_str = parsed_request["date"]
                 start_str = parsed_request["start_time"]
@@ -74,30 +60,20 @@ class MultiAgentTrafficSystem:
                 await send_update("error", "Invalid date/time format parsed. Please try again.")
                 return
 
-            # --- INTELLIGENT AGENT FILTERING LOGIC ---
             target_agents = self.lab_agents
-            # 1. Highest Priority: Filter by specific lab name
             if requested_lab_name:
                 await send_update("log", f"Searching specifically in {requested_lab_name}...")
                 target_agents = [agent for agent in self.lab_agents if agent.lab_name.lower() == requested_lab_name.lower()]
-            
-            # 2. Second Priority: Filter by equipment
             elif requested_equipment:
                 await send_update("log", f"Filtering for labs with: {', '.join(requested_equipment)}")
-                
-                # Build a database query to find labs matching the criteria
                 search_conditions = [sqlalchemy.or_(labs.c.equipment.ilike(f"%{item}%"), labs.c.description.ilike(f"%{item}%")) for item in requested_equipment]
-                
                 matching_labs_query = labs.select().where(sqlalchemy.and_(*search_conditions))
                 matching_lab_records = await database.fetch_all(matching_labs_query)
                 matching_lab_names = {lab['name'] for lab in matching_lab_records}
-
-                # Filter the agent list
                 target_agents = [agent for agent in self.lab_agents if agent.lab_name in matching_lab_names]
-
                 if not target_agents:
                     await send_update("log", "No labs found matching your specific criteria.")                    
-                    await send_update("availability_results", []) # Send empty results
+                    await send_update("availability_results", [])
                     return
             
             await send_update("log", f"Broadcasting request to {len(target_agents)} relevant Lab Agent(s)...")
@@ -125,7 +101,6 @@ class MultiAgentTrafficSystem:
             await send_update("error", f"An error occurred: {e}")
 
     async def get_schedule_for_range(self, start_date: datetime, end_date: datetime) -> dict:
-        """Gathers schedule data for a specific date range by querying the database."""
         query = bookings.select().where(
             bookings.c.start_time >= start_date,
             bookings.c.start_time < end_date
@@ -185,11 +160,10 @@ class MultiAgentTrafficSystem:
             await send_update("log", f"✅ Counter-offer accepted! The slot should now be available.")
             await self.handle_availability_query(f"check labs for {data['start_time']} to {data['end_time']}", websocket)
 
-        else: # REJECT
+        else:
             await send_update("log", f"❌ {target_agent.name} rejected the request. The slot remains unavailable.")
             
     async def handle_booking_request(self, data: dict, websocket: fastapi.WebSocket):
-        """Handles a booking request by writing to the database, checking roles and setting priority."""
         if self.current_user.role == 'student':
             await websocket.send_text(json.dumps({"type": "error", "data": "Permission Denied: Students cannot book labs."}))
             return
@@ -203,33 +177,23 @@ class MultiAgentTrafficSystem:
         user_record = await database.fetch_one(users.select().where(users.c.username == self.current_user.username))
         
         if lab_record and user_record:
-
-            # --- CRITICAL: FINAL AVAILABILITY CHECK ---
             target_agent = self.agent_map.get(f"LabAgent_{lab_name.replace(' ', '_')}")
             if target_agent:
-                # Get the most up-to-date schedule from DB right before booking
                 latest_schedule_query = bookings.select().where(bookings.c.lab_id == lab_record.id)
                 latest_schedule = await database.fetch_all(latest_schedule_query)
-                
                 availability = await target_agent.check_availability(start_time, end_time, student_count, latest_schedule)
-# --- CRITICAL: FINAL AVAILABILITY CHECK (IMPROVED) ---
             if availability['status'] != 'AVAILABLE':
-                error_msg = "Booking failed: The slot is no longer available." # Default message
-
+                error_msg = "Booking failed: The slot is no longer available."
                 if availability['status'] == 'CONFLICT_CAPACITY':
-                    # Fetch lab capacity to provide a specific error
                     lab_capacity = lab_record.capacity
                     error_msg = f"Booking failed: Student count ({student_count}) exceeds lab capacity of {lab_capacity}."
-
                 elif availability['status'] == 'CONFLICT_RIGID':
                     owner = availability.get('owner', 'another user')
                     error_msg = f"Booking failed: Slot is booked by {owner}."
                     if owner == self.current_user.username:
                         error_msg = "Booking failed: You have already booked this lab for an overlapping time."
-
                 await websocket.send_text(json.dumps({"type": "error", "data": error_msg}))
                 return
-            
             
             priority = 3 
             email_prefix = self.current_user.email.split('@')[0].upper()
@@ -255,7 +219,6 @@ class MultiAgentTrafficSystem:
             await websocket.send_text(json.dumps({"type": "error", "data": "Booking failed: Invalid lab or user."}))
 
     async def handle_cancellation_request(self, data: dict, websocket: fastapi.WebSocket):
-        """Handles a user's request to cancel a booking."""
         lab_name = data['lab_name']
         start_time_str = data.get('start_time')
         booking_id = data.get('booking_id')
@@ -286,7 +249,6 @@ class MultiAgentTrafficSystem:
             await websocket.send_text(json.dumps({"type": "error", "data": message}))
 
     async def handle_student_count_update(self, data: dict, websocket: fastapi.WebSocket):
-        """Handles updating the student count for a booking."""
         booking_id = data.get('booking_id')
         new_student_count = data.get('student_count')
 
@@ -318,7 +280,6 @@ class MultiAgentTrafficSystem:
         await self.broadcast_schedule_update()
                                
     async def initialize_system(self):
-            """Asynchronously initializes labs and agents from the database."""
             lab_records = await database.fetch_all(query=labs.select())
             lab_names = [lab['name'] for lab in lab_records]
             lab_agent_names = [f"LabAgent_{name.replace(' ', '_')}" for name in lab_names]

@@ -4,7 +4,7 @@ import fastapi
 import asyncio
 import json
 from typing import List, Optional
-from fastapi import Request, Depends, HTTPException, status, Query, Response # Add Response
+from fastapi import Request, Depends, HTTPException, status, Query, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -12,13 +12,11 @@ import sqlalchemy
 from pydantic import BaseModel, EmailStr
 import os
 
-# --- NEW: Import the refactored components ---
 from simulation import MultiAgentTrafficSystem
 
 from database import database, engine, metadata
 from models import users, labs, bookings
 from auth import pwd_context
-# To hash initial passwords
 from fastapi.security import OAuth2PasswordRequestForm
 from auth import (
     User,
@@ -29,17 +27,13 @@ from auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     get_current_active_user,
     oauth2_scheme,
-    create_user, # Import the new create_user function
-    get_current_user_from_cookie, # <-- IMPORT THE NEW DEPENDENCY
+    create_user,
+    get_current_user_from_cookie,
 )
 
-
-
-# --- FastAPI Setup ---
 app = fastapi.FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# --- Lab Management Models and Endpoints ---
 class LabCreate(BaseModel):
     name: str
     capacity: int
@@ -63,8 +57,6 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
     """
     return current_user
 
-# --- NEW: Profile Management Endpoints for Current User ---
-
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -72,7 +64,6 @@ class UserUpdate(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str
-
 
 class ConnectionManager:
     def __init__(self):
@@ -96,29 +87,23 @@ async def read_root():
     """Redirects the root URL to the login page."""
     return RedirectResponse(url="/login")
 
-
-# --- NEW: The dashboard is now served from its own endpoint ---
 @app.get("/dashboard", response_class=HTMLResponse)
 async def read_dashboard(request: Request):
     """Serves the main HTML dashboard page."""
     return templates.TemplateResponse("index.html", {"request": request})
 
-# --- NEW: Endpoint to serve the login page ---
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
-# --- NEW: Endpoint to serve the registration page ---
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
-# FIX: The /profile route now serves the page without authentication
 @app.get("/profile", response_class=HTMLResponse)
 async def profile_page(request: Request):
     return templates.TemplateResponse("profile.html", {"request": request})
 
-# NEW: A secure API endpoint that the profile page will call to get data
 @app.put("/api/users/me", response_model=User)
 async def update_current_user(user_update: UserUpdate, current_user: User = Depends(get_current_active_user)):
     """
@@ -126,7 +111,6 @@ async def update_current_user(user_update: UserUpdate, current_user: User = Depe
     """
     update_data = user_update.dict(exclude_unset=True)
     
-    # Check if the new email is already taken by another user
     if "email" in update_data:
         existing_user_query = users.select().where(users.c.email == update_data["email"])
         existing_user = await database.fetch_one(existing_user_query)
@@ -139,27 +123,22 @@ async def update_current_user(user_update: UserUpdate, current_user: User = Depe
     query = users.update().where(users.c.username == current_user.username).values(**update_data)
     await database.execute(query)
 
-    # Fetch and return the updated user object
     updated_user = await database.fetch_one(users.select().where(users.c.username == current_user.username))
     return updated_user
 
-# NEW ENDPOINT TO GET ALL LABS
 @app.get("/api/labs", response_model=List[LabCreate])
 async def get_all_labs():
     query = labs.select()
     return await database.fetch_all(query)
 
-# --- MODIFIED /admin endpoint ---
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page(request: Request, current_user: User = Depends(get_current_user_from_cookie)):
     if current_user.role != "super_admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this page")
     
-    # Fetch all data
     all_users = await database.fetch_all(users.select())
     all_labs = await database.fetch_all(labs.select())
 
-    # --- NEW: Fetch all bookings with user and lab names ---
     query = sqlalchemy.select(
         bookings.c.id,
         bookings.c.start_time,
@@ -177,13 +156,11 @@ async def admin_page(request: Request, current_user: User = Depends(get_current_
         "request": request, 
         "users": all_users, 
         "labs": all_labs,
-        "bookings": all_bookings # <-- Pass bookings to the template
+        "bookings": all_bookings
     })
 
-
-# --- MODIFIED: Login endpoint to work with the new form ---
 @app.post("/token", response_model=Token)
-async def login_for_access_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends()): # <-- INJECT 'Response'
+async def login_for_access_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     query = users.select().where(users.c.username == form_data.username)
     user_record = await database.fetch_one(query)
     if not user_record or not verify_password(form_data.password, user_record['hashed_password']):
@@ -197,18 +174,15 @@ async def login_for_access_token(response: Response, form_data: OAuth2PasswordRe
         data={"sub": user_record['username']}, expires_delta=access_token_expires
     )
 
-    # --- SET THE COOKIE IN THE RESPONSE ---
     response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=True, # Makes the cookie inaccessible to JavaScript (more secure)
-        samesite="lax", # Strict same-site policy
+        httponly=True,
+        samesite="lax",
     )
     
-    # Also return the token in the body for the WebSocket connection
     return {"access_token": access_token, "token_type": "bearer"}
 
-# --- NEW: Registration endpoint ---
 class UserCreate(BaseModel):
     username: str
     full_name: str
@@ -218,13 +192,11 @@ class UserCreate(BaseModel):
 
 @app.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(user: UserCreate):
-    # Email validation
     if not user.email.endswith("@iitj.ac.in"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid email domain. Only @iitj.ac.in is allowed."
         )
-    # Check if user already exists
     query = users.select().where(users.c.username == user.username)
     if await database.fetch_one(query):
         raise HTTPException(
@@ -240,7 +212,6 @@ async def register_user(user: UserCreate):
 
     await create_user(user)
     return {"message": "User created successfully."}
-
 
 @app.post("/api/labs", status_code=status.HTTP_201_CREATED)
 async def create_lab(lab: LabCreate, current_user: User = Depends(get_current_active_user)):
@@ -264,17 +235,13 @@ async def delete_lab(lab_id: int, current_user: User = Depends(get_current_activ
     if current_user.role != "super_admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
     
-    # First, delete associated bookings to maintain database integrity
     delete_bookings_query = bookings.delete().where(bookings.c.lab_id == lab_id)
     await database.execute(delete_bookings_query)
     
-    # Then, delete the lab
     delete_lab_query = labs.delete().where(labs.c.id == lab_id)
     await database.execute(delete_lab_query)
     await manager.broadcast(json.dumps({"type": "labs_updated"}))
 
-
-# --- User Management Endpoints for Admin ---
 @app.put("/api/users/{user_id}", status_code=status.HTTP_200_OK)
 async def update_user(user_id: int, role: str, current_user: User = Depends(get_current_active_user)):
     if current_user.role != "super_admin":
@@ -288,21 +255,17 @@ async def change_current_user_password(password_data: PasswordChange, current_us
     """
     Change the current user's password.
     """
-    # Fetch the user from DB to get the hashed password
     user_in_db = await database.fetch_one(users.select().where(users.c.username == current_user.username))
     
-    # Verify the current password
     if not verify_password(password_data.current_password, user_in_db['hashed_password']):
         raise HTTPException(status_code=400, detail="Incorrect current password.")
 
-    # Hash the new password and update it in the database
     new_hashed_password = pwd_context.hash(password_data.new_password)
     query = users.update().where(users.c.username == current_user.username).values(hashed_password=new_hashed_password)
     await database.execute(query)
     
     return {"message": "Password updated successfully."}
 
-# --- Booking Management Endpoints for Admin ---
 @app.delete("/api/bookings/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_booking(booking_id: int, current_user: User = Depends(get_current_active_user)):
     if current_user.role != "super_admin":
@@ -326,15 +289,13 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
         return
 
     await manager.connect(websocket)
-    # The system is now correctly created with the user context
-    system = MultiAgentTrafficSystem(current_user=current_user, manager=manager) # MODIFIED LINE
-    await system.initialize_system() # Initialize agents from DB
+    system = MultiAgentTrafficSystem(current_user=current_user, manager=manager)
+    await system.initialize_system()
 
     await websocket.send_text(json.dumps({
         "type": "auth_success",
         "data": {"username": current_user.username, "role": current_user.role, "full_name": current_user.full_name}
     }))
-
 
     today = datetime.now()
     start_of_week = today - timedelta(days=today.weekday())
@@ -347,8 +308,6 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
-
-            # Route messages to the system, which already knows about the user
 
             if message.get("type") == "get_schedule_for_range":
                 start_date = datetime.fromisoformat(message["data"]["start"])
@@ -375,7 +334,6 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
 
                     await websocket.send_text(json.dumps({"type":"booking_confirmation","data":{"message":"Booking cancelled.","booking_id": result.get("booking_id")}}))
 
-                    # Broadcast updated schedule (week)
                     now = datetime.now()
                     start_of_week = now - timedelta(days=now.weekday())
                     end_of_week = start_of_week + timedelta(days=7)
@@ -391,19 +349,15 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
     except fastapi.WebSocketDisconnect:
         manager.disconnect(websocket)
 
-
 @app.on_event("startup")
 async def startup():
     await database.connect()
-    # Create tables if they don't exist
     metadata.create_all(bind=engine)
 
-    # --- MODIFIED: Load admin credentials from .env ---
     async with database.transaction():
         admin_username = os.getenv("ADMIN_USERNAME", "admin")
         query = users.select().where(users.c.username == admin_username)
         if not await database.fetch_one(query):
-            # Create a default super admin from environment variables
             admin_user = {
                 "username": admin_username,
                 "full_name": "Super Admin",
@@ -413,24 +367,11 @@ async def startup():
             }
             await database.execute(query=users.insert(), values=admin_user)
 
-        # query = labs.select().where(labs.c.name == "AI Lab")
-        # if not await database.fetch_one(query):
-        #     # Create labs
-        #     lab_list = [
-        #         {"name": "AI Lab", "capacity": 50, "equipment": "NVIDIA GPUs, High-end PCs"},
-        #         {"name": "Robotics Lab", "capacity": 30, "equipment": "Soldering Iron, Raspberry Pi"},
-        #         {"name": "VLSI Lab", "capacity": 60, "description": "Contains equipment for VLSI design"},
-        #         {"name": "Quantum Lab", "capacity": 20, "description": "For quantum computing research"},
-        #     ]
-        #     await database.execute_many(query=labs.insert(), values=lab_list)
-
-# --- NEW: User Creation Endpoint for Admin ---
 @app.post("/api/users/admin-create", status_code=status.HTTP_201_CREATED)
 async def admin_create_user(user: UserCreate, current_user: User = Depends(get_current_active_user)):
     if current_user.role != "super_admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
 
-    # Reuse the same validation as the public registration
     if not user.email.endswith("@iitj.ac.in"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email domain.")
     
@@ -444,7 +385,6 @@ async def admin_create_user(user: UserCreate, current_user: User = Depends(get_c
 
     await create_user(user)
     
-    # --- BROADCAST UPDATE ---
     await manager.broadcast(json.dumps({"type": "users_updated"}))
     
     return {"message": "User created successfully by admin."}
@@ -463,18 +403,13 @@ async def delete_user(user_id: int, current_user: User = Depends(get_current_act
     if target_user['role'] == 'super_admin':
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete a super admin")
 
-    # Also delete user's bookings
     delete_bookings_query = bookings.delete().where(bookings.c.user_id == user_id)
     await database.execute(delete_bookings_query)
 
-    # Delete the user
     delete_user_query = users.delete().where(users.c.id == user_id)
     await database.execute(delete_user_query)
-    # --- BROADCAST UPDATE ---
     await manager.broadcast(json.dumps({"type": "users_updated"}))
-
 
 @app.on_event("shutdown")
 async def shutdown():
-    # Perform shutdown tasks here
     await database.disconnect()
