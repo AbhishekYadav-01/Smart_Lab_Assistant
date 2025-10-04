@@ -703,7 +703,12 @@
         });
 
         // --- WebSocket Connection for Real-time Updates ---
-        const ws = new WebSocket(`ws://localhost:8000/ws?token=${token}`);
+        // Get the hostname from the browser's current location
+        const host = window.location.host;
+        // Use wss for secure connection, ws for local
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        ws = new WebSocket(`${protocol}://${host}/ws?token=${token}`);
+
         ws.onmessage = function(event) {
             const message = JSON.parse(event.data);
             if (message.type === 'users_updated' || message.type === 'labs_updated') {

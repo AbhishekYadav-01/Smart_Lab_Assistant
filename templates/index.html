@@ -1335,7 +1335,13 @@
             statusEl.innerText = "Authentication token not found.";
             return;
           }
-          ws = new WebSocket(`ws://localhost:8000/ws?token=${token}`);
+
+          // Get the hostname from the browser's current location
+          const host = window.location.host;
+          // Use wss for secure connection, ws for local
+          const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+          ws = new WebSocket(`${protocol}://${host}/ws?token=${token}`);
+
           ws.onopen = () => {
             statusEl.innerText = "Status: Connected";
             console.log("WebSocket connected.");
