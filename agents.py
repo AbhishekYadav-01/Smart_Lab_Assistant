@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 
@@ -62,7 +63,10 @@ class HeadLabAssistantAgent:
 class LabAgent:
     def __init__(self, lab_name: str, capacity: int, all_agent_names: List[str]):
         self.lab_name = lab_name
-        self.name = f"LabAgent_{lab_name.replace(' ', '_')}"
+
+        sanitized_name = re.sub(r'\W|^(?=\d)', '_', lab_name)
+        self.name = f"LabAgent_{sanitized_name}"
+
         self.capacity = capacity
         self.agent = AssistantAgent(
             name=self.name, model_client=model_client,
