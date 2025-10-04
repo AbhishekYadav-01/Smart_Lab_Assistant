@@ -52,3 +52,4 @@ python-multipart
 pydantic[email]                                                 
 sqlalchemy
 python-jose
+passlib
