@@ -50,3 +50,4 @@ jinja2
 python-multipart
 # Note: Python 3.10+ required 
 pydantic[email]                                                 
+sqlalchemy
