@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - Smart Lab Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <style>
+    :root{
+      --bg-color:#f8f9fa;
+      --text-color:#212529;
+      --card-bg-color:#ffffff;
+      --border-color:#dee2e6;
+      --primary-gradient: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      --muted:#6b7280;
+      --shadow-sm:0 4px 16px rgba(0,0,0,0.08);
+      --shadow-md:0 8px 28px rgba(0,0,0,0.10);
+      --radius-lg:16px;
+    }
+  
+    body.dark-mode{
+      --bg-color:#05060a;
+      --text-color:#ffffff;
+      --card-bg-color:#0f1220;
+      --border-color:rgba(255,255,255,0.06);
+      --shadow-sm:0 8px 30px rgba(0,0,0,0.5);
+      --shadow-md:0 12px 46px rgba(0,0,0,0.6);
+    }
+  
+    html,body{height:100%}
+    body{
+      font-family:"Poppins", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      margin:0;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:var(--bg-color);
+      color:var(--text-color);
+      transition:background-color .32s ease, color .32s ease;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      position:relative;
+      overflow:hidden;
+    }
+  
+    body::before{
+      content:'';
+      position:fixed; top:-50%; left:-50%;
+      width:200%; height:200%;
+      background:radial-gradient(circle, rgba(102,126,234,0.06) 0%, transparent 50%);
+      animation: rotate 30s linear infinite; pointer-events:none; z-index:0;
+    }
+    @keyframes rotate{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+  
+    .register-container{ z-index:1; width:100%; max-width:640px; padding:1rem; }
+  
+    .card{
+      background:var(--card-bg-color);
+      border:1px solid var(--border-color);
+      border-radius:22px;
+      box-shadow:var(--shadow-md);
+      overflow:hidden;
+      transition:transform .28s cubic-bezier(.2,.9,.25,1), box-shadow .28s ease;
+    }
+    .card:hover{ transform:translateY(-6px); box-shadow:var(--shadow-md); }
+  
+    .card-body{ padding:2.25rem; z-index:2; }
+  
+    .register-top{
+      display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.75rem;
+    }
+    h2{ font-weight:700; font-size:1.45rem; margin:0; background:var(--primary-gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  
+    .form-label{ font-weight:600; color:var(--muted); margin-bottom:.35rem; font-size:.94rem; }
+    .form-control, .form-select{
+      width:100%;
+      background:var(--card-bg-color);
+      color:var(--text-color);
+      border:1px solid var(--border-color);
+      border-radius:12px;
+      padding:.85rem .95rem;
+      font-size:.95rem;
+      transition:box-shadow .18s ease, transform .12s ease, border-color .12s ease;
+    }
+  
+    /* CRITICAL: ensure input readable on focus (fix white-on-white) */
+    .form-control:focus, .form-select:focus, .form-control:focus-visible{
+      background:var(--card-bg-color) !important;
+      color:var(--text-color) !important;
+      border-color:rgba(102,126,234,0.45) !important;
+      box-shadow:0 10px 36px rgba(102,126,234,0.07) !important;
+      outline:none !important;
+      caret-color:var(--text-color) !important;
+      transform: translateY(-1px);
+    }
+  
+    /* Autofill */
+    input:-webkit-autofill, textarea:-webkit-autofill, select:-webkit-autofill{
+      -webkit-box-shadow:0 0 0 30px var(--card-bg-color) inset !important;
+      box-shadow:0 0 0 30px var(--card-bg-color) inset !important;
+      -webkit-text-fill-color:var(--text-color) !important;
+    }
+  
+    .row.g-3 > .col { padding-left: .5rem; padding-right: .5rem; }
+  
+    .btn-primary{
+      background:var(--primary-gradient);
+      color:#fff;
+      border:none;
+      border-radius:12px;
+      padding:.9rem;
+      font-weight:600;
+      box-shadow:0 12px 36px rgba(102,126,234,0.12);
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 18px 48px rgba(102,126,234,0.16); }
+  
+    .form-text{ color: color-mix(in srgb, var(--text-color) 60%, transparent); font-size:.88rem; }
+  
+    .meta { text-align:center; margin-top:.9rem; color:var(--muted); font-size:.92rem; }
+    .meta a{ color: currentColor; opacity:.9; font-weight:600; }
+  
+    /* theme toggle small pill (place in top area if desired) */
+    .theme-toggle{ display:inline-flex; align-items:center; gap:.5rem; background:transparent; }
+    .fas,.fa,.far,.fab { color:var(--text-color) !important; transition:color .18s ease; }
+  
+    @media (max-width:640px){ .card-body{ padding:1.25rem; } h2{ font-size:1.2rem; } }
+  </style>
+  
+</head>
+<body>
+  <div class="register-container">
+    <div class="card shadow-sm">
+      <div class="card-body p-5">
+        <h2>Create Account</h2>
+
+         <!-- theme toggle (accessible checkbox) -->
+            <label class="theme-toggle" title="Toggle theme">
+                <input type="checkbox" id="registerThemeSwitch" />
+                <span style="width:40px;height:22px;display:inline-block;border-radius:999px;background:rgba(0,0,0,0.06);position:relative;vertical-align:middle;box-sizing:content-box;">
+                <span style="position:absolute; left:2px; top:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .18s ease;" id="registerKnob"></span>
+                </span>
+            </label>
+
+        <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+        <form id="registerForm">
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" required>
+          </div>
+          <div class="mb-3">
+            <label for="fullname" class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="fullname" required>
+          </div>
+          <div class="mb-3">
+            <label for="email" class="form-label">Email address</label>
+            <input type="email" class="form-control" id="email" required pattern=".+@iitj\.ac\.in$" title="Please use your IIT Jodhpur email address.">
+            <div class="form-text">Must be a valid @iitj.ac.in email.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <input type="password" class="form-control" id="password" required>
+              <button type="button" class="btn btn-outline-secondary" id="togglePassword" title="Show password" style="border-radius:0 12px 12px 0;">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="role" class="form-label">Role</label>
+            <select class="form-select" id="role" required>
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Register</button>
+        </form>
+        <div class="text-center mt-3">
+          <a href="/login">Already have an account? Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    (function(){
+        const themeSwitch = document.getElementById('registerThemeSwitch');
+        const knob = document.getElementById('registerKnob');
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark-mode') {
+          document.body.classList.add('dark-mode');
+          if (themeSwitch) { themeSwitch.checked = true; knob.style.transform = 'translateX(18px)'; }
+        } else {
+          if (themeSwitch) { themeSwitch.checked = false; knob.style.transform = 'translateX(0)'; }
+        }
+    
+        if (themeSwitch) {
+          themeSwitch.addEventListener('change', function(){
+            const on = themeSwitch.checked;
+            if (on) {
+              document.body.classList.add('dark-mode');
+              localStorage.setItem('theme','dark-mode');
+              knob.style.transform = 'translateX(18px)';
+            } else {
+              document.body.classList.remove('dark-mode');
+              localStorage.setItem('theme','light-mode');
+              knob.style.transform = 'translateX(0)';
+            }
+          });
+        }
+      })();
+
+
+    document.getElementById('registerForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const username = document.getElementById('username').value;
+      const fullName = document.getElementById('fullname').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+      const errorMessage = document.getElementById('error-message');
+
+      try {
+        const response = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, full_name: fullName, email, password, role }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Registration failed');
+        }
+        window.location.href = '/login'; // success → go to login
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.classList.remove('d-none');
+      }
+    });
+
+
+    (function(){
+        const toggle = document.getElementById('togglePassword');
+        const pw = document.getElementById('password');
+        if (toggle && pw) {
+          toggle.addEventListener('click', () => {
+            const is = pw.type === 'password';
+            pw.type = is ? 'text' : 'password';
+            toggle.querySelector('i').classList.toggle('fa-eye-slash', is);
+          });
+        }
+      })();
+
+      
+  </script>
+</body>
+</html>

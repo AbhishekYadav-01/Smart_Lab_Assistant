@@ -1,0 +1,12 @@
+# .gitignore
+
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# Databases
+*.db
+*.sqlite3

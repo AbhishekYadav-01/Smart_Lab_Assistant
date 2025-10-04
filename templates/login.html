@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Smart Lab Assistant</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+      /* Theme variables (same palette as index.html) */
+      :root{
+        --bg-color: #f8f9fa;
+        --text-color: #212529;
+        --card-bg-color: #ffffff;
+        --border-color: #dee2e6;
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --muted: #6b7280;
+        --shadow-sm: 0 6px 20px rgba(16,24,40,0.06);
+        --shadow-md: 0 12px 36px rgba(16,24,40,0.08);
+        --radius-lg: 16px;
+      }
+    
+      /* Dark theme overrides (same intent as index) */
+      body.dark-mode {
+        --bg-color: #05060a;
+        --text-color: #ffffff;
+        --card-bg-color: #0f1220;
+        --border-color: rgba(255,255,255,0.06);
+        --shadow-sm: 0 8px 30px rgba(0,0,0,0.5);
+        --shadow-md: 0 12px 46px rgba(0,0,0,0.6);
+      }
+    
+      /* Page base */
+      html,body{height:100%}
+      body{
+        font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        background: var(--bg-color);
+        color: var(--text-color);
+        margin:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        transition: background-color .32s ease, color .32s ease;
+        -webkit-font-smoothing:antialiased;
+        -moz-osx-font-smoothing:grayscale;
+      }
+    
+      /* subtle decorative background like index */
+      body::before{
+        content:'';
+        position:fixed; top:-50%; left:-50%;
+        width:200%; height:200%;
+        background: radial-gradient(circle, rgba(102,126,234,0.06) 0%, transparent 50%);
+        animation: rotate 30s linear infinite; pointer-events:none; z-index:0;
+      }
+      @keyframes rotate{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+    
+      .login-container{ z-index:1; width:100%; max-width:420px; padding:1rem; }
+    
+      /* Card */
+      .card{
+        background:var(--card-bg-color);
+        border:1px solid var(--border-color);
+        box-shadow:var(--shadow-md);
+        border-radius:var(--radius-lg);
+        overflow:hidden;
+        transition: transform .28s cubic-bezier(.2,.9,.25,1), box-shadow .28s ease;
+      }
+      .card:hover{ transform:translateY(-6px); box-shadow:var(--shadow-md); }
+    
+      .card-body{ padding:2rem; position:relative; z-index:2; }
+    
+      /* Top row inside card for title + theme toggle */
+      .login-top {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:.75rem;
+        margin-bottom:.75rem;
+      }
+      h2{ font-weight:700; font-size:1.35rem; margin:0; background:var(--primary-gradient);
+           -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    
+      /* Form controls */
+      .form-label{ font-weight:600; color:var(--muted); font-size:.92rem; margin-bottom:.35rem; }
+      .form-control{
+        width:100%;
+        background:var(--card-bg-color);
+        color:var(--text-color);
+        border:1px solid var(--border-color);
+        border-radius:12px;
+        padding:.78rem .9rem;
+        font-size:.95rem;
+        transition: box-shadow .18s ease, transform .12s ease, border-color .12s ease;
+      }
+    
+      /* IMPORTANT: keep input readable on focus (fixes white-on-white) */
+      .form-control:focus, .form-control:focus-visible {
+        background: var(--card-bg-color) !important;
+        color: var(--text-color) !important;
+        border-color: rgba(102,126,234,0.45) !important;
+        box-shadow: 0 8px 30px rgba(102,126,234,0.07) !important;
+        outline: none !important;
+        caret-color: var(--text-color) !important;
+        transform: translateY(-1px);
+      }
+    
+      /* placeholder color for readability */
+      .form-control::placeholder { color: color-mix(in srgb, var(--text-color) 60%, transparent); opacity:.85; }
+    
+      /* Autofill fix for chrome */
+      input:-webkit-autofill, textarea:-webkit-autofill { -webkit-box-shadow: 0 0 0 30px var(--card-bg-color) inset !important; box-shadow: 0 0 0 30px var(--card-bg-color) inset !important; -webkit-text-fill-color: var(--text-color) !important; }
+    
+      /* toggle styles (small pill) */
+      .theme-toggle {
+        display:inline-flex;
+        align-items:center;
+        gap:.5rem;
+        background:transparent;
+        border-radius:999px;
+        padding:.18rem .35rem;
+        border:1px solid transparent;
+      }
+      .theme-toggle .switch {
+        width:44px; height:24px; border-radius:999px; background:rgba(0,0,0,0.06);
+        position:relative; display:inline-block; cursor:pointer;
+        transition: background .18s ease;
+      }
+      .theme-toggle .knob {
+        position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%;
+        background:#fff; box-shadow:0 3px 8px rgba(0,0,0,0.12); transition: transform .18s ease, background .18s ease;
+      }
+      .theme-toggle input { display:none; }
+      .theme-toggle input:checked + .switch { background: rgba(102,126,234,0.25); }
+      .theme-toggle input:checked + .switch .knob { transform: translateX(20px); background: #fff; }
+    
+      /* Primary button */
+      .btn-primary{
+        background: var(--primary-gradient);
+        color:#fff;
+        border:none;
+        border-radius:12px;
+        padding:.82rem;
+        font-weight:600;
+        box-shadow:0 10px 30px rgba(102,126,234,0.14);
+        transition: transform .12s ease, box-shadow .12s ease;
+      }
+      .btn-primary:hover{ transform: translateY(-2px); box-shadow:0 14px 40px rgba(102,126,234,0.18); }
+    
+      /* small helper text & link */
+      .meta { text-align:center; margin-top:.9rem; color:var(--muted); font-size:.92rem; }
+      .meta a { color: var(--primary-gradient); font-weight:600; }
+    
+      /* Icons use current color (so they go white in dark mode) */
+      .fas, .fa, .far, .fab { color: var(--text-color) !important; transition: color .18s ease; }
+    
+      /* Responsive */
+      @media (max-width:420px){ .card-body{ padding:1.2rem; } .login-top{ gap:.4rem } }
+    </style>
+    
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="card shadow-sm">
+        <div class="card-body p-5">
+          <h2 class="text-center mb-4">
+            Smart Lab Assistant
+          
+          </h2>
+           <!-- Theme toggle: checkbox-based (keeps it accessible) -->
+            <label class="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+              <input type="checkbox" id="loginThemeSwitch" />
+              <span class="switch" role="switch" aria-checked="false">
+                <span class="knob"></span>
+              </span>
+            </label>
+          <div
+            id="error-message"
+            class="alert alert-danger d-none"
+            role="alert"
+          ></div>
+          <form id="loginForm">
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" class="form-control" id="username" required />
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+          </form>
+          <div class="text-center mt-3">
+            <a href="/register">Don't have an account? Register</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <script>
+
+      if (localStorage.getItem("theme") === "dark-mode") {
+        document.body.classList.add("dark-mode");
+      }
+
+        // Restore theme preference (so login looks like the rest of the site)
+        (function(){
+          const themeSwitch = document.getElementById('loginThemeSwitch');
+          const saved = localStorage.getItem('theme');
+          if (saved === 'dark-mode') {
+            document.body.classList.add('dark-mode');
+            if (themeSwitch) {
+              themeSwitch.checked = true;
+              themeSwitch.nextElementSibling && themeSwitch.nextElementSibling.setAttribute('aria-checked','true');
+            }
+          }
+          // If no saved value, keep default light.
+      
+          // Hook toggle change
+          if (themeSwitch) {
+            themeSwitch.addEventListener('change', function(){
+              const on = themeSwitch.checked;
+              if (on) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme','dark-mode');
+                themeSwitch.nextElementSibling && themeSwitch.nextElementSibling.setAttribute('aria-checked','true');
+              } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme','light-mode');
+                themeSwitch.nextElementSibling && themeSwitch.nextElementSibling.setAttribute('aria-checked','false');
+              }
+            });
+          }
+        })();      
+
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+          const errorMessage = document.getElementById("error-message");
+
+          const formData = new FormData();
+          formData.append("username", username);
+          formData.append("password", password);
+
+          try {
+            const response = await fetch("/token", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || "Login failed");
+            }
+
+            const data = await response.json();
+            localStorage.setItem("accessToken", data.access_token);
+            
+            // MODIFIED: Show pop-up and redirect to /dashboard
+            Toastify({
+                text: "✅ Logged in successfully!",
+                duration: 2000,
+                gravity: "top",
+                position: "center",
+                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                stopOnFocus: true,
+                callback: function() { window.location.href = "/dashboard"; }
+            }).showToast();
+
+          } catch (error) {
+            errorMessage.textContent = error.message;
+            errorMessage.classList.remove("d-none");
+          }
+        });
+    </script>
+  </body>
+</html>

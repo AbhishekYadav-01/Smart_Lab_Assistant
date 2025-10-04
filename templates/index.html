@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IIT Jodhpur - Smart Lab Assistant</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- put this inside <head>, replacing the old fonts link -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+    <style>
+      :root {
+        --bg-color: #2a2f4a;
+        --text-color: #212529;
+        --card-bg-color: #ffffff;
+        --border-color: #dee2e6;
+        --primary-color: #0d6efd;
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+      }
+      
+      body.dark-mode {
+        --bg-color: #0a0e27;
+        --text-color: #e0e0e0;
+        --card-bg-color: #1a1f3a;
+        --border-color: #2a2f4a;
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      }
+      
+      body {
+        font-family: "Poppins", sans-serif;
+        background: var(--bg-color);
+        color: var(--text-color);
+        transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease;
+        position: relative;
+        overflow-x: hidden;
+      }
+      
+      /* Animated background gradient */
+      body::before {
+        content: '';
+        position: fixed;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 50%);
+        animation: rotate 30s linear infinite;
+        pointer-events: none;
+        z-index: 0;
+      }
+      
+      @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .container {
+        position: relative;
+        z-index: 1;
+      }
+      
+      /* Enhanced navbar with glassmorphism */
+      .navbar {
+        background: rgba(33, 37, 41, 0.95) !important;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      /* Card enhancements with 3D effects */
+      .card {
+        background: var(--card-bg-color);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-md);
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--primary-gradient);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+      }
+      
+      .card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+      }
+      
+      .card:hover::before {
+        transform: scaleX(1);
+      }
+      
+      .card-header {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1.25rem 1.5rem;
+        font-weight: 600;
+      }
+      
+      .card-body {
+        padding: 1.5rem;
+      }
+      
+      /* Enhanced input group with 3D depth */
+      .input-group {
+        box-shadow: var(--shadow-sm);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+      }
+      
+      .input-group:focus-within {
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2), var(--shadow-md);
+      }
+      
+      .form-control, .form-select {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+        background: var(--card-bg-color);
+        color: var(--text-color);
+      }
+      
+      .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        transform: translateY(-1px);
+      }
+      
+      /* Enhanced buttons with gradients and 3D effects */
+      .btn {
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        border: none;
+      }
+      
+      .btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+      }
+      
+      .btn:hover::before {
+        width: 300px;
+        height: 300px;
+      }
+      
+      .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+      
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+      }
+      
+      .btn-success {
+        background: var(--success-gradient);
+        color: white;
+        box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+      }
+      
+      .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(17, 153, 142, 0.5);
+      }
+      
+      .btn-warning {
+        background: var(--warning-gradient);
+        color: white;
+        box-shadow: 0 4px 12px rgba(240, 147, 251, 0.4);
+      }
+      
+      .btn-secondary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      
+      .btn-outline-secondary {
+        border: 2px solid var(--border-color);
+        color: var(--text-color);
+        background: transparent;
+      }
+      
+      .btn-outline-secondary:hover {
+        background: var(--primary-gradient);
+        color: white;
+        border-color: transparent;
+      }
+      
+      /* Microphone button animation enhancement */
+      #micBtn.is-listening {
+        background: var(--warning-gradient);
+        color: white;
+        animation: pulse 1.5s infinite, rotate-mic 2s ease-in-out infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(245, 87, 108, 0.7);
+        }
+        50% {
+          box-shadow: 0 0 0 15px rgba(245, 87, 108, 0);
+        }
+      }
+      
+      @keyframes rotate-mic {
+        0%, 100% { transform: rotate(0deg) scale(1); }
+        25% { transform: rotate(-5deg) scale(1.05); }
+        75% { transform: rotate(5deg) scale(1.05); }
+      }
+      
+      /* Enhanced schedule grid with 3D cards */
+      .schedule-grid {
+        display: grid;
+        grid-template-columns: 120px repeat(7, 1fr);
+        gap: 8px;
+        background: transparent;
+        border: none;
+        border-radius: 12px;
+        padding: 8px;
+      }
+      
+      .grid-header, .grid-cell, .grid-lab-name {
+        background: var(--card-bg-color);
+        padding: 1rem;
+        text-align: center;
+        font-size: 0.9rem;
+        border-radius: 10px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-color);
+      }
+      
+      .grid-header {
+        font-weight: 600;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+        transform-style: preserve-3d;
+      }
+      
+      .grid-lab-name {
+        font-weight: 600;
+        text-align: left;
+        background: linear-gradient(to right, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
+      }
+      
+      .grid-cell {
+        min-height: 100px;
+        position: relative;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      
+      .grid-cell:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+      }
+      
+      /* Enhanced booking pills with 3D effect */
+      .booking-pill {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        margin-bottom: 6px;
+        text-align: left;
+        overflow: hidden;
+        cursor: pointer;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+      }
+      
+      .booking-pill::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+      }
+      
+      .booking-pill:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+      }
+      
+      .booking-pill:hover::before {
+        left: 100%;
+      }
+      
+      .cancel-btn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        color: white;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        border: none;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+        line-height: 22px;
+        padding: 0;
+        display: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+      
+      .cancel-btn:hover {
+        background: rgba(220, 53, 69, 0.9);
+        transform: rotate(90deg) scale(1.1);
+      }
+      
+      .booking-pill:hover .cancel-btn {
+        display: block;
+        animation: fadeIn 0.3s ease;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      
+      /* Calendar navigation enhancements */
+      .calendar-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+      }
+      
+      .calendar-nav button {
+        transition: all 0.3s ease;
+      }
+      
+      .calendar-nav button:hover {
+        transform: scale(1.05);
+      }
+      
+      /* Results panel enhancements */
+      .list-group-item {
+        background: var(--card-bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px !important;
+        margin-bottom: 0.75rem;
+        padding: 1.25rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+      }
+      
+      .list-group-item:hover {
+        transform: translateX(4px);
+        box-shadow: var(--shadow-md);
+      }
+      
+      /* Loading spinner enhancement */
+      .spinner-border {
+        border-width: 3px;
+        width: 3rem;
+        height: 3rem;
+      }
+      
+      /* Theme switch enhancement */
+      .form-switch .form-check-input {
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+        transition: all 0.3s ease;
+      }
+      
+      .form-switch .form-check-input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+      }
+      
+      /* Status indicator */
+      #status {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border-left: 3px solid #667eea;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+      
+      /* Smooth scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: var(--bg-color);
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+      }
+      
+      /* Dropdown menu enhancement */
+      .dropdown-menu {
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-lg);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+        animation: slideDown 0.3s ease;
+      }
+      
+      body.dark-mode .dropdown-menu {
+        background: rgba(26, 31, 58, 0.95);
+      }
+      
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      .dropdown-item {
+        border-radius: 8px;
+        margin: 4px 8px;
+        transition: all 0.2s ease;
+      }
+      
+      .dropdown-item:hover {
+        background: var(--primary-gradient);
+        color: white !important;
+        transform: translateX(4px);
+      }
+
+      :root, body {
+        /* ensure transition on most visual properties */
+        transition: background-color 0.45s cubic-bezier(.2,.8,.2,1),
+                    color 0.35s ease,
+                    border-color 0.35s ease,
+                    box-shadow 0.35s ease,
+                    transform 0.35s ease;
+      }
+      
+      /* apply transitions to commonly changed elements */
+      body, .card, .form-control, .form-select, .btn, .dropdown-menu,
+      .list-group-item, .grid-cell, .grid-header, .grid-lab-name, .booking-pill {
+        transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, transform 0.25s ease;
+      }
+      
+      /* Force icons & text utilities to follow --text-color in theme mode */
+      body.dark-mode * {
+        color: var(--text-color) !important;
+      }
+      
+      /* But keep button backgrounds, gradients and pill backgrounds visually distinct.
+         Buttons that have their own colored backgrounds keep their colors but text still follows --text-color */
+      body.dark-mode .btn-primary,
+      body.dark-mode .btn-success,
+      body.dark-mode .btn-warning,
+      body.dark-mode .booking-pill {
+        /* keep existing gradients but ensure text contrast */
+        color: var(--text-color) !important;
+      }
+      
+      /* Navbar should use your variables (remove bg-dark / navbar-dark in HTML per note) */
+      .navbar {
+        background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.45));
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+      }
+      
+      /* Dark-mode specific visual tuning */
+      body.dark-mode {
+        /* darker blackish overall background */
+        --bg-color: #05060a;          /* page bg */
+        --text-color: #FFFFFF;        /* all text forced white */
+        --card-bg-color: #0f1220;     /* card / field darker */
+        --border-color: rgba(255,255,255,0.06);
+        --primary-color: #9aa7ff;
+        --shadow-sm: 0 6px 18px rgba(0,0,0,0.6);
+        --shadow-md: 0 8px 26px rgba(0,0,0,0.65);
+      }
+      
+      /* Light-mode explicit tuning (optional: make sure light-mode has crisp whites) */
+      body:not(.dark-mode) {
+        --bg-color: #ffffff;
+        --text-color: #111827;     /* darker black for legibility */
+        --card-bg-color: #ffffff;
+        --border-color: #e6e7ea;
+        --shadow-sm: 0 2px 8px rgba(10,10,20,0.04);
+        --shadow-md: 0 4px 16px rgba(10,10,20,0.06);
+      }
+      
+      /* form fields and selects */
+      .form-control, .form-select, input[type="date"], input[type="time"], input[type="number"] {
+        background: var(--card-bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+      }
+      
+      /* placeholder color */
+      .form-control::placeholder, .form-select::placeholder {
+        color: color-mix(in srgb, var(--text-color) 60%, transparent);
+        opacity: 0.8;
+      }
+      
+      /* cards and list items */
+      .card, .list-group-item, .dropdown-menu {
+        background: var(--card-bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+      }
+      
+      /* booking pills slightly brighter/darker depending on theme */
+      body:not(.dark-mode) .booking-pill {
+        background: var(--primary-gradient);
+        color: #fff;
+      }
+      body.dark-mode .booking-pill {
+        /* use a darker, desaturated gradient */
+        background: linear-gradient(135deg, rgba(102,126,234,0.18), rgba(118,75,162,0.18));
+        color: var(--text-color);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+      }
+      
+      /* ensure icon colours (fontawesome) follow text */
+      .fas, .fa, .far, .fab {
+        color: var(--text-color);
+        transition: color 0.25s ease;
+      }
+      
+      /* links */
+      a, .nav-link {
+        color: var(--text-color);
+      }
+      a:hover, .nav-link:hover {
+        opacity: 0.9;
+        text-decoration: none;
+      }
+      
+      /* tweak body decorative gradient when dark so it becomes subtle and darker */
+      body.dark-mode::before {
+        filter: brightness(30%) saturate(60%);
+        opacity: 0.65;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.06) 0%, transparent 50%);
+      }
+
+
+      /* ===== typography & icon polish (paste at end of your <style>) ===== */
+
+        :root { --base-font-size: 14px; }            /* small, readable base */
+        html { font-size: var(--base-font-size); }
+        
+        /* Clean font stack & smoothing */
+        body {
+          font-family: "Inter", "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          font-weight: 400;
+          line-height: 1.45;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          font-size: 0.95rem; /* ~13.5px (adjust: 0.9rem = smaller, 1rem = default) */
+          letter-spacing: -0.01em;
+        }
+        
+        /* Headings: smaller, tighter, stylish */
+        h1, h2, h3, h4, h5, h6 {
+          font-weight: 600;
+          color: var(--text-color);
+          margin-bottom: 0.35rem;
+          line-height: 1.2;
+          letter-spacing: -0.02em;
+        }
+        h2 { font-size: 1.15rem; }   /* subtitle size */
+        h3 { font-size: 1rem; }
+        h5, .card-header h5 { font-size: 0.95rem; }
+        
+        /* Paragraphs & small text */
+        p, label, .form-label, .nav-link, .list-group-item small, small {
+          font-size: 0.82rem;
+          color: var(--text-color);
+          opacity: 0.95;
+        }
+        
+        /* Inputs & buttons slightly smaller and cleaner */
+        .form-control, .form-select {
+          font-size: 0.88rem;
+          padding: 0.6rem 0.9rem;
+          border-radius: 10px;
+        }
+        .btn {
+          font-size: 0.9rem;
+          font-weight: 600;
+          border-radius: 10px;
+          padding: 0.6rem 1rem;
+        }
+        
+        /* Cards, pills and list items */
+        .card, .list-group-item, .booking-pill {
+          font-size: 0.88rem;
+        }
+        
+        /* Icon treatment: make icons inherit text color (so they turn white in dark mode) */
+        .fas, .fa, .far, .fab, .fa-solid, .bi, i[class*="fa-"] {
+          color: var(--text-color) !important;
+          opacity: 0.95;
+          transition: color 0.25s ease, opacity 0.25s ease;
+        }
+        
+        /* Some icons may be using utility classes like text-dark or text-muted.
+           Ensure they follow theme vars when dark-mode toggled. */
+        .text-dark { color: #111 !important; } /* keep default for light mode */
+        body.dark-mode .text-dark { color: var(--text-color) !important; }
+        
+        /* Make SVG icons use currentColor (so their fill follows var(--text-color)) */
+        svg { fill: currentColor !important; stroke: currentColor !important; }
+        
+        /* Tweak placeholder for neatness */
+        .form-control::placeholder {
+          color: color-mix(in srgb, var(--text-color) 60%, transparent);
+          opacity: 0.8;
+        }
+        
+        /* Slight compacting utility if you need more density */
+        .compact { font-size: 0.82rem !important; padding: 0.45rem !important }
+        
+        /* optional micro letter-spacing for headings */
+        .card-header { letter-spacing: -0.01em; }
+        
+        /* final safety: ensure nav icons also follow theme */
+        .navbar .fa, .navbar i, .navbar .bi { color: var(--text-color) !important; }
+        
+        /* ===== Fix: keep inputs, selects, textarea & navbar readable on focus/autofill ===== */
+
+      /* Force correct bg + text while focused (important to override Bootstrap/user-agent) */
+      .form-control:focus,
+      .form-select:focus,
+      textarea:focus,
+      input:focus,
+      select:focus {
+        background: var(--card-bg-color) !important;
+        color: var(--text-color) !important;
+        border-color: rgba(102,126,234,0.6) !important; /* subtle focus color */
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.08) !important;
+        outline: none !important;
+        caret-color: var(--text-color) !important; /* caret visible */
+      }
+
+      /* Ensure navbar links/icons keep text color when focused */
+      .navbar .nav-link:focus,
+      .navbar a:focus,
+      .navbar button:focus,
+      .navbar i:focus {
+        color: var(--text-color) !important;
+        background: transparent !important;
+        outline: none !important;
+      }
+
+      /* Chrome / WebKit autofill fix: keep dark background & readable text */
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      textarea:-webkit-autofill,
+      textarea:-webkit-autofill:hover,
+      textarea:-webkit-autofill:focus,
+      select:-webkit-autofill,
+      select:-webkit-autofill:hover,
+      select:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 30px var(--card-bg-color) inset !important;
+        box-shadow: 0 0 0 30px var(--card-bg-color) inset !important;
+        -webkit-text-fill-color: var(--text-color) !important;
+        caret-color: var(--text-color) !important;
+      }
+
+      /* Placeholder color while focused */
+      .form-control:focus::placeholder,
+      .form-select:focus::placeholder {
+        color: color-mix(in srgb, var(--text-color) 60%, transparent) !important;
+        opacity: 0.9 !important;
+      }
+
+      /* If any icon or element gets a hardcoded background on focus, neutralize it */
+      button:focus, .btn:focus, .form-check-input:focus {
+        background: transparent !important;
+        color: var(--text-color) !important;
+      }
+
+      /* Small safety: nav icons inherit currentColor so they toggle properly */
+      .navbar .fa, .navbar i, .navbar svg { color: var(--text-color) !important; }
+
+
+      /* booking action icons */
+      .booking-pill {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+      }
+      .booking-main { flex: 1; text-align: left; }
+      .booking-actions { display: inline-flex; gap: 6px; align-items: center; }
+      .booking-actions .btn { font-size: 0.78rem; padding: 0.28rem 0.5rem; }
+      .booking-actions .btn i { pointer-events: none; } /* let button handle clicks */
+      .booking-pill:focus { box-shadow: 0 0 0 3px rgba(102,126,234,0.08); outline: none; }  
+      
+    .form-control:read-only {
+        background-color: #e9ecef;
+        opacity: 1;
+    }
+    body.dark-mode .form-control:read-only {
+        background-color: #2a2f4a;
+    }
+
+            :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #4cc9f0;
+            --text-light: #f8f9fa;
+            --bg-dark: #212529;
+            --bg-darker: #1a1d23;
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 0.8rem 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1000;
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: var(--text-light) !important;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+        }
+        
+        .navbar-brand:hover {
+            color: var(--accent-color) !important;
+            transform: translateY(-2px);
+        }
+        
+        .navbar-brand i {
+            margin-right: 10px;
+            font-size: 1.8rem;
+            color: var(--accent-color);
+        }
+        
+        .navbar-nav {
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: var(--text-light) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+            transition: var(--transition);
+            margin: 0 3px;
+            position: relative;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: var(--accent-color) !important;
+            transform: translateY(-2px);
+        }
+        
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 15%;
+            width: 70%;
+            height: 3px;
+            background-color: var(--accent-color);
+            border-radius: 2px;
+        }
+        
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            margin-right: 10px;
+        }
+        
+        .theme-toggle-label {
+            color: var(--text-light);
+            margin-right: 10px;
+            font-weight: 500;
+        }
+        
+        .form-check-input {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            width: 3.2em !important;
+            height: 1.6em !important;
+            cursor: pointer;
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        .dropdown-toggle {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+        
+        .dropdown-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: scale(1.1);
+        }
+        
+        .dropdown-toggle::after {
+            display: none;
+        }
+        
+        .dropdown-menu {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            padding: 0.5rem;
+            margin-top: 10px;
+            min-width: 200px;
+        }
+        
+        .dropdown-item {
+            padding: 0.7rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+        }
+        
+        .dropdown-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .dropdown-item:hover {
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .dropdown-divider {
+            margin: 0.5rem 0;
+        }
+        
+        .user-avatar {
+            font-size: 1.6rem;
+            color: var(--accent-color);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 991.98px) {
+            .navbar-collapse {
+                padding-top: 1rem;
+            }
+            
+            .theme-toggle {
+                justify-content: center;
+                margin: 0.5rem 0;
+            }
+            
+            .nav-link {
+                text-align: center;
+                margin: 0.2rem 0;
+            }
+        }
+        
+        /* Animation for navbar */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .navbar-nav .nav-item {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .navbar-nav .nav-item:nth-child(1) { animation-delay: 0.1s; }
+        .navbar-nav .nav-item:nth-child(2) { animation-delay: 0.2s; }
+        .navbar-nav .nav-item:nth-child(3) { animation-delay: 0.3s; }
+
+
+                /* Navbar Theme Support */
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+            transition: background 0.35s ease;
+        }
+        
+        body.dark-mode .navbar {
+            background: linear-gradient(135deg, #1a1f3a, #0a0e27) !important;
+        }
+        
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        body.dark-mode .text-muted {
+          color: var(--muted) !important;
+        }
+        body.dark-mode .navbar-brand {
+          color: var(--text-color) !important;
+        }
+
+    </style>
+  </head>
+  <body>
+     <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fas fa-robot"></i> Smart Lab Assistant
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" 
+                    aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    <li class="nav-item me-3">
+                        <div class="theme-toggle">
+                            <span class="theme-toggle-label">Dark Mode</span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="themeSwitch">
+                                <label class="form-check-label" for="themeSwitch"></label>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard">
+                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle user-avatar"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li>
+                                <a class="dropdown-item" href="/profile">
+                                    <i class="fas fa-user"></i> View Profile
+                                </a>
+                            </li>
+                            <li id="admin-link-container" style="display: none;">
+                                <a class="dropdown-item" href="/admin">
+                                    <i class="fas fa-cog"></i> Admin Panel
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="#" id="logoutBtn">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+      <div class="container query-container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Lab Booking Dashboard</h2>
+            <div id="userInfo" class="text-muted"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-question-circle"></i> Ask for Availability</h5>
+            </div>
+            <div class="card-body">
+                <div id="status" class="text-muted mb-2">Status: Ready</div>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        id="chatInput"
+                        class="form-control"
+                        placeholder="e.g., Is the AI lab free tomorrow from 2 to 4 PM?"
+                    />
+                    <button class="btn btn-primary" id="sendBtn" title="Send">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                    <button
+                        class="btn btn-outline-secondary"
+                        id="micBtn"
+                        title="Ask with Voice"
+                    >
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="fas fa-edit"></i> Manual Booking
+            </div>
+            <div class="card-body">
+                <form id="manualBookingForm">
+                    <div class="mb-2">
+                        <label for="labName" class="form-label">Lab Name</label>
+                      <select class="form-select" id="labName">
+                      </select>
+                    </div>
+                    <div class="mb-2">
+                        <label for="bookingDate" class="form-label">Date</label>
+                        <input
+                            type="date"
+                            class="form-control"
+                            id="bookingDate"
+                            required
+                        />
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col">
+                            <label for="startTime" class="form-label">Start Time</label>
+                            <input
+                                type="time"
+                                class="form-control"
+                                id="startTime"
+                                required
+                            />
+                        </div>
+                        <div class="col">
+                            <label for="endTime" class="form-label">End Time</label>
+                            <input type="time" class="form-control" id="endTime" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="studentCount" class="form-label">Number of Students</label>
+                        <input
+                            type="number"
+                            class="form-control"
+                            id="studentCount"
+                            value="10"
+                            min="1"
+                        />
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="fas fa-search"></i> Check Availability
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-clipboard-list"></i> Results</h5>
+            </div>
+            <div class="card-body" id="resultsPanel" style="min-height: 200px">
+                <p class="text-muted">Results will be displayed here...</p>
+            </div>
+        </div>
+        
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <div class="calendar-nav">
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" id="prevBtn">
+                            &lt; Prev
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="todayBtn">
+                            Today
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="nextBtn">
+                            Next &gt;
+                        </button>
+                    </div>
+                    <h5 class="mb-0" id="current-view-title">Weekly Schedule</h5>
+                    <div>
+                        <input
+                            type="date"
+                            id="datePicker"
+                            class="form-control form-control-sm d-inline-block"
+                            style="width: auto"
+                        />
+                    </div>
+                </div>
+            </div>
+            <div class="card-body" id="schedulePanel"></div>
+        </div>
+
+    </div>
+
+
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="bookingModalLabel">Booking Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="bookingModalForm">
+            <div class="modal-body">
+              <input type="hidden" id="modal_booking_id" />
+              <input type="hidden" id="modal_lab_name" />
+              <div class="mb-2">
+                <label class="form-label">Lab</label>
+                <input type="text" id="modal_lab_display" class="form-control" readonly />
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col">
+                  <label class="form-label">Start Time</label>
+                  <input type="datetime-local" id="modal_start_time" class="form-control" readonly />
+                </div>
+                <div class="col">
+                  <label class="form-label">End Time</label>
+                  <input type="datetime-local" id="modal_end_time" class="form-control" readonly />
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Booked By</label>
+                <input type="text" id="modal_booked_by" class="form-control" readonly />
+              </div>
+              <div class="mb-2">
+                <label class="form-label">Student Count</label>
+                <input type="number" id="modal_students" class="form-control" min="1" />
+              </div>
+              <div id="modalFeedback" class="small text-muted"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="deleteBookingBtn" class="btn btn-danger me-auto">Delete</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="submit" id="saveChangesBtn" class="btn btn-primary">Save changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="bookingConfirmModal" tabindex="-1" aria-labelledby="bookingConfirmModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="bookingConfirmModalLabel">Confirm Your Booking</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="bookingConfirmForm">
+            <div class="modal-body">
+                <p>Please confirm the details below before booking.</p>
+                <div class="mb-2">
+                    <label class="form-label">Lab</label>
+                    <input type="text" id="confirm_lab_name" class="form-control" readonly>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col">
+                        <label class="form-label">Start Time</label>
+                        <input type="text" id="confirm_start_time" class="form-control" readonly>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">End Time</label>
+                        <input type="text" id="confirm_end_time" class="form-control" readonly>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label for="confirm_students" class="form-label">Number of Students</label>
+                    <input type="number" id="confirm_students" class="form-control" min="1" required>
+                </div>
+                <input type="hidden" id="confirm_start_iso">
+                <input type="hidden" id="confirm_end_iso">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Confirm Booking</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const accessToken = localStorage.getItem("accessToken");
+        if (!accessToken) {
+          window.location.href = "/login";
+          return;
+        }
+
+        let currentDate = new Date();
+        let currentView = "week"; // 'week' or 'month
+
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+        const todayBtn = document.getElementById("todayBtn");
+        const datePicker = document.getElementById("datePicker");
+        const viewTitle = document.getElementById("current-view-title");
+        const feedPanel = document.getElementById("feedPanel"); // NEW: Get feed panel element
+        // --- UI Element References ---
+        const chatInput = document.getElementById("chatInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const micBtn = document.getElementById("micBtn");
+        const statusEl = document.getElementById("status");
+        const schedulePanel = document.getElementById("schedulePanel"); // New UI element
+        const resultsPanel = document.getElementById("resultsPanel");
+        const themeSwitch = document.getElementById("themeSwitch");
+        const manualBookingCard = document.getElementById("manualBookingCard"); // <-- GET THE CARD
+        let currentUser = null;
+
+        let ws;
+        const labNameSelect = document.getElementById("labName"); // <-- ADD THIS LINE
+
+                // --- NEW FUNCTION TO FETCH AND POPULATE LABS ---
+        async function populateLabs() {
+            try {
+                const response = await fetch('/api/labs');
+                const labs = await response.json();
+                
+                labNameSelect.innerHTML = '<option>Any Lab</option>'; // Start with default
+                labs.forEach(lab => {
+                    const option = document.createElement('option');
+                    option.value = lab.name;
+                    option.textContent = lab.name;
+                    labNameSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Failed to fetch labs:", error);
+                labNameSelect.innerHTML = '<option>Error loading labs</option>';
+            }
+        }
+
+        function addFeedItem(text) {
+          const item = document.createElement("div");
+          item.className = "feed-item";
+          item.textContent = `> ${text}`;
+          feedPanel.appendChild(item);
+          // Auto-scroll to the bottom
+          feedPanel.scrollTop = feedPanel.scrollHeight;
+        }
+
+        function fetchScheduleForCurrentView() {
+          let start = new Date(currentDate);
+          // Set to the beginning of the week (Sunday)
+          start.setDate(start.getDate() - start.getDay());
+          
+          let end = new Date(start);
+          end.setDate(start.getDate() + 7); // Go forward 7 days
+
+          viewTitle.innerText = `Week of ${start.toLocaleDateString()}`;
+
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: "get_schedule_for_range",
+                // ALWAYS send both start and end to prevent the crash
+                data: { start: start.toISOString(), end: end.toISOString() },
+              })
+            );
+          }
+        }
+        // --- WebSocket Connection ---
+        function connectWebSocket() {
+          const token = localStorage.getItem("accessToken");
+          if (!token) {
+            statusEl.innerText = "Authentication token not found.";
+            return;
+          }
+          ws = new WebSocket(`ws://localhost:8000/ws?token=${token}`);
+          ws.onopen = () => {
+            statusEl.innerText = "Status: Connected";
+            console.log("WebSocket connected.");
+            fetchScheduleForCurrentView(); // Fetch schedule on connect
+            populateLabs(); // <-- ADD THIS LINE
+          };
+          ws.onclose = () => {
+            statusEl.innerText = "Status: Disconnected";
+            console.log("WebSocket disconnected.");
+          };
+          ws.onerror = (err) => {
+            statusEl.innerText = "Status: Connection Error";
+            console.error("WebSocket error:", err);
+          };
+          ws.onmessage = handleServerMessage;
+        }
+
+        // ---------- Booking modal handlers & delegated actions ----------
+// ---------- NEW: Smart Booking Modal Logic ----------
+(function () {
+    const schedulePanelEl = document.getElementById("schedulePanel");
+    const bookingModal = new bootstrap.Modal(document.getElementById("bookingModal"));
+    const bookingForm = document.getElementById("bookingModalForm");
+
+    const modal = {
+        id: document.getElementById('modal_booking_id'),
+        labName: document.getElementById('modal_lab_name'),
+        labDisplay: document.getElementById('modal_lab_display'),
+        startTime: document.getElementById('modal_start_time'),
+        endTime: document.getElementById('modal_end_time'),
+        bookedBy: document.getElementById('modal_booked_by'),
+        students: document.getElementById('modal_students'),
+        feedback: document.getElementById('modalFeedback'),
+        saveBtn: document.getElementById('saveChangesBtn'),
+        deleteBtn: document.getElementById('deleteBookingBtn'),
+    };
+
+    function isoToLocalInput(iso) {
+        if (!iso) return "";
+        const d = new Date(iso);
+        const offset = d.getTimezoneOffset();
+        const local = new Date(d.getTime() - (offset * 60 * 1000));
+        return local.toISOString().slice(0, 16);
+    }
+
+    // Open modal when a "view-btn" is clicked
+    schedulePanelEl.addEventListener("click", function (ev) {
+        const btn = ev.target.closest('.view-btn');
+        if (!btn) return;
+
+        const pill = btn.closest('.booking-pill');
+        const bookingData = pill.dataset;
+
+        // Populate modal fields
+        modal.id.value = bookingData.bookingId;
+        modal.labName.value = bookingData.lab;
+        modal.labDisplay.value = bookingData.lab;
+        modal.startTime.value = isoToLocalInput(bookingData.start);
+        modal.endTime.value = isoToLocalInput(bookingData.end);
+        modal.bookedBy.value = bookingData.booked_by;
+        modal.students.value = bookingData.students || '1';
+        modal.feedback.innerText = '';
+
+        // Check permissions to determine UI state
+        const isOwner = currentUser && currentUser.username === bookingData.booked_by;
+        const isAdmin = currentUser && currentUser.role === 'super_admin';
+
+        if (isOwner || isAdmin) {
+            modal.students.readOnly = false; // The ONLY editable field
+            modal.saveBtn.style.display = 'inline-block';
+            modal.deleteBtn.style.display = 'inline-block';
+        } else {
+            modal.students.readOnly = true;
+            modal.saveBtn.style.display = 'none';
+            modal.deleteBtn.style.display = 'none';
+        }
+        bookingModal.show();
+    });
+
+    // Handle SAVE button (submitting the form to update student count)
+    bookingForm.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        const payload = {
+            type: 'update_student_count', // New message type
+            data: {
+                booking_id: parseInt(modal.id.value),
+                student_count: parseInt(modal.students.value),
+            }
+        };
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(payload));
+            bookingModal.hide();
+        } else {
+            modal.feedback.innerText = 'Not connected to server.';
+        }
+    });
+
+    // Handle DELETE button from inside the modal
+    modal.deleteBtn.addEventListener('click', function () {
+        if (!confirm('Are you sure you want to delete this booking?')) return;
+        const payload = {
+            type: 'cancel_booking',
+            data: {
+                booking_id: parseInt(modal.id.value),
+                lab_name: modal.labName.value // Pass both for robustness
+            }
+        };
+         if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(payload));
+            bookingModal.hide();
+        } else {
+            alert('Not connected to server.');
+        }
+    });
+})();
+
+
+        // --- Main message handler ---
+        function handleServerMessage(event) {
+          console.log("Message from server:", event.data);
+          const message = JSON.parse(event.data);
+
+                    // --- ADD THIS NEW 'else if' BLOCK ---
+          if (message.type === "labs_updated") {
+              Toastify({
+                  text: "Lab list has been updated by an admin.",
+                  duration: 3000,
+                  gravity: "top",
+                  position: "center",
+                  backgroundColor: "linear-gradient(to right, #667eea, #764ba2)",
+              }).showToast();
+              populateLabs(); // Re-fetch the lab list
+              fetchScheduleForCurrentView(); // Refresh the main schedule view
+          }
+
+          // MODIFIED: Handle 'log' messages for the feed
+          else if (message.type === "error") {
+    Toastify({
+        text: `⚠️ ${message.data}`,
+        duration: 5000,
+        gravity: "top",
+        position: "center",
+        backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+    }).showToast();
+    statusEl.innerText = "Status: Error";
+}
+else if (message.type === "log") {
+    statusEl.innerText = message.data;
+    addFeedItem(message.data);
+}
+
+          // MODIFIED: Handle booking confirmation with a pop-up
+          else if (message.type === "booking_confirmation") {
+            Toastify({
+              text: `✅ Success! ${message.data.lab_name} booked for you.`,
+              duration: 4000,
+              gravity: "top", // `top` or `bottom`
+              position: "right", // `left`, `center` or `right`
+              backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+              stopOnFocus: true, // Prevents dismissing of toast on hover
+            }).showToast();
+          }
+
+          // Other message types
+          else if (message.type === "schedule_update") {
+            renderFullSchedule(message.data);
+          } else if (message.type === "auth_success") {
+            currentUser = message.data; // <-- STORE THE ENTIRE USER OBJECT
+            document.getElementById(
+              "userInfo"
+            ).innerText = `Logged in as: ${currentUser.full_name}`;
+
+                    // --- NEW LOGIC TO SHOW ADMIN LINK ---
+            if (message.data.role === 'super_admin') {
+                const adminLinkContainer = document.getElementById('admin-link-container');
+                if (adminLinkContainer) {
+                    adminLinkContainer.style.display = 'block';
+                }
+            }
+
+            // --- HIDE BOOKING CONTROLS FOR STUDENTS ---
+            if (currentUser.role === 'student') {
+                if (manualBookingCard) {
+                    manualBookingCard.style.display = 'none';
+                }
+            }
+
+          } else if (message.type === "availability_results") {
+            renderResults(message.data);
+          }
+        }
+
+        // --- MODIFIED: Results rendering with new buttons ---
+        function renderResults(results) {
+          resultsPanel.innerHTML = "";
+          if (!results || results.length === 0) {
+            resultsPanel.innerHTML =
+              '<p class="text-muted">No results found.</p>';
+            return;
+          }
+          const listGroup = document.createElement("ul");
+          listGroup.className = "list-group";
+          results.forEach((result) => {
+            const listItem = document.createElement("li");
+            listItem.className =
+              "list-group-item d-flex justify-content-between align-items-center";
+
+            let buttonHtml = "";
+
+                            // --- HIDE BOOK BUTTON FOR STUDENTS ---
+          if (currentUser && currentUser.role !== 'student') {
+            if (result.status === "AVAILABLE") {
+              buttonHtml = `<button class="btn btn-sm btn-success book-btn" data-lab="${result.lab_name}" data-start="${result.start_time}" data-end="${result.end_time}" data-students="${result.student_count}">Book Now</button>`;
+            } else if (result.status.startsWith("CONFLICT_FLEXIBLE")) {
+              buttonHtml = `<button class="btn btn-sm btn-warning shift-btn" data-lab="${result.lab_name}" data-start="${result.start_time}" data-end="${result.end_time}">Request Shift</button>`;
+            }
+          }
+            let icon =
+              result.status === "AVAILABLE"
+                ? '<i class="fas fa-check-circle text-success fa-lg"></i>'
+                : result.status.startsWith("CONFLICT_FLEXIBLE")
+                ? '<i class="fas fa-exclamation-triangle text-warning fa-lg"></i>'
+                : '<i class="fas fa-times-circle text-danger fa-lg"></i>';
+
+            let statusText = result.status
+              .replace("CONFLICT_FLEXIBLE: ", "")
+              .replace("CONFLICT: ", "");
+
+            listItem.innerHTML = `
+                        <div>
+                            <h6 class="mb-0">${result.lab_name}</h6>
+                            <small class="text-muted">${statusText}</small>
+                        </div>
+                        <div>
+                            ${buttonHtml}
+                            <span class="ms-3">${icon}</span>
+                        </div>
+                    `;
+            listGroup.appendChild(listItem);
+          });
+          resultsPanel.appendChild(listGroup);
+        }
+
+        // --- NEW: Event listener for the final booking confirmation ---
+document.getElementById('bookingConfirmForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const lab = document.getElementById('confirm_lab_name').value;
+    const start = document.getElementById('confirm_start_iso').value;
+    const end = document.getElementById('confirm_end_iso').value;
+    const students = document.getElementById('confirm_students').value;
+
+    const query = {
+        type: "book_slot",
+        data: {
+            lab_name: lab,
+            start_time: start,
+            end_time: end,
+            student_count: parseInt(students),
+        },
+    };
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(query));
+        statusEl.innerText = `Requesting to book ${lab}...`;
+    } else {
+        alert('WebSocket is not connected.');
+    }
+
+    // Hide the modal
+    const confirmModal = bootstrap.Modal.getInstance(document.getElementById('bookingConfirmModal'));
+    confirmModal.hide();
+});
+
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+          e.preventDefault();
+          localStorage.removeItem('accessToken');
+          Toastify({
+              text: "👋 Logged out successfully!",
+              duration: 2000,
+              gravity: "top",
+              position: "center",
+              backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)",
+              stopOnFocus: true,
+              callback: function() { window.location.href = "/login"; }
+          }).showToast();
+      });
+
+        document
+          .getElementById("schedulePanel")
+          .addEventListener("click", function (event) {
+            if (event.target && event.target.classList.contains("cancel-btn")) {
+              if (confirm("Are you sure you want to cancel this booking?")) {
+                const lab = event.target.dataset.lab;
+                const start = event.target.dataset.start;
+                const query = {
+                  type: "cancel_booking",
+                  data: { lab_name: lab, start_time: start },
+                };
+                ws.send(JSON.stringify(query));
+              }
+            }
+          });
+        function renderFullSchedule(scheduleData) {
+          schedulePanel.innerHTML = "";
+          const grid = document.createElement("div");
+          grid.className = "schedule-grid";
+
+          // --- THIS IS THE FIX ---
+          // It now calculates the week based on the selected 'currentDate'
+          // instead of always using 'today'.
+          const weekStart = new Date(currentDate);
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Set to Sunday of the selected week
+
+          // 1. Create the Header Row using the corrected weekStart date
+          let headerHtml = '<div class="grid-header">Lab</div>';
+          for (let i = 0; i < 7; i++) {
+            const day = new Date(weekStart);
+            day.setDate(weekStart.getDate() + i);
+            headerHtml += `<div class="grid-header">
+                                ${day.toLocaleDateString("en-US", {
+                                  weekday: "short",
+                                })}
+                                <br><small>${day.toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                })}</small>
+                               </div>`;
+          }
+
+          // 2. Create a row for each lab
+          let bodyHtml = "";
+          const labNames = Object.keys(scheduleData).sort();
+
+          for (const labName of labNames) {
+            bodyHtml += `<div class="grid-lab-name">${labName}</div>`;
+            const labBookings = scheduleData[labName];
+
+            // Create a cell for each of the 7 days
+            for (let i = 0; i < 7; i++) {
+              const day = new Date(weekStart);
+              day.setDate(weekStart.getDate() + i);
+
+              let cellContent = "";
+
+              const bookingsForDay = labBookings
+                .filter((b) => {
+                  const bookingDate = new Date(b.start_time);
+                  return (
+                    bookingDate.getFullYear() === day.getFullYear() &&
+                    bookingDate.getMonth() === day.getMonth() &&
+                    bookingDate.getDate() === day.getDate()
+                  );
+                })
+                .sort(
+                  (a, b) => new Date(a.start_time) - new Date(b.start_time)
+                );
+
+              bookingsForDay.forEach((booking) => {
+                const start = new Date(booking.start_time);
+                const end = new Date(booking.end_time);
+                const timeFormat = {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                };
+
+// ONLY show the view button on the pill itself
+const actionsHtml = `
+<div class="booking-actions">
+    <button class="btn btn-sm btn-outline-secondary view-btn" title="View Details" 
+        data-booking-id="${booking.id}">
+        <i class="fas fa-eye"></i>
+    </button>
+</div>`;
+
+cellContent += `
+  <div class="booking-pill" tabindex="0"
+      data-booking-id="${booking.id}"
+      data-lab="${labName}"
+      data-booked_by="${booking.booked_by}"
+      data-start="${booking.start_time}"
+      data-end="${booking.end_time}"
+      data-students="${booking.student_count || ''}">
+    <div class="booking-main">
+      <strong class="booking-time">${start.toLocaleTimeString([], timeFormat)} - ${end.toLocaleTimeString([], timeFormat)}</strong>
+      <div class="booking-user"><small>${booking.booked_by}</small></div>
+    </div>
+    ${actionsHtml}
+  </div>
+`;
+              });
+
+              bodyHtml += `<div class="grid-cell">${cellContent}</div>`;
+            }
+          }
+
+          grid.innerHTML = headerHtml + bodyHtml;
+          schedulePanel.appendChild(grid);
+        }
+
+        // --- NEW: Event listeners for calendar navigation ---
+        prevBtn.addEventListener("click", () => {
+          currentDate.setDate(currentDate.getDate() - 7); // Go back one week
+          fetchScheduleForCurrentView();
+        });
+        nextBtn.addEventListener("click", () => {
+          currentDate.setDate(currentDate.getDate() + 7); // Go forward one week
+          fetchScheduleForCurrentView();
+        });
+        todayBtn.addEventListener("click", () => {
+          currentDate = new Date(); // Reset to today
+          fetchScheduleForCurrentView();
+        });
+        datePicker.addEventListener("change", (e) => {
+          currentDate = new Date(e.target.value);
+          // Adjust to local timezone
+          currentDate.setMinutes(
+            currentDate.getMinutes() + currentDate.getTimezoneOffset()
+          );
+
+          fetchScheduleForCurrentView();
+        });
+
+        // --- FIX: Re-integrated the query sending logic ---
+        function sendQuery(queryText) {
+          if (!queryText) return;
+          Toastify({ text: "Processing your query...", duration: 2500, gravity: "top", position: "center" }).showToast();
+          if (!ws || ws.readyState !== WebSocket.OPEN) {
+            statusEl.innerText = "Status: Not connected. Please wait.";
+            return;
+          }
+          console.log("Sending query:", queryText);
+          statusEl.innerText = "Status: Sending query...";
+          resultsPanel.innerHTML =
+            '<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+          ws.send(JSON.stringify({ type: "user_query", data: queryText }));
+        }
+
+        document
+          .getElementById("manualBookingForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent page reload
+
+            const labName = document.getElementById("labName").value;
+            const date = document.getElementById("bookingDate").value;
+            const startTime = document.getElementById("startTime").value;
+            const endTime = document.getElementById("endTime").value;
+            const students = document.getElementById("studentCount").value;
+
+            // Construct a natural language query from the form data
+            let query = `Is ${labName} available on ${date} from ${startTime} to ${endTime} for ${students} students?`;
+            if (labName === "Any Lab") {
+              query = `Is any lab available on ${date} from ${startTime} to ${endTime} for ${students} students?`;
+            }
+
+            sendQuery(query);
+          });
+
+        // --- FIX: Re-integrated event listeners for input buttons ---
+        sendBtn.addEventListener("click", () => {
+          const query = chatInput.value;
+          sendQuery(query);
+          chatInput.value = "";
+        });
+
+        chatInput.addEventListener("keypress", (event) => {
+          if (event.key === "Enter") {
+            sendBtn.click();
+          }
+        });
+
+        // --- NEW: Event listeners for booking and shifting ---
+resultsPanel.addEventListener("click", function (event) {
+    const target = event.target;
+
+    // --- NEW "Book Now" button logic ---
+    if (target && target.classList.contains("book-btn")) {
+        const bookingData = target.dataset;
+        const confirmModal = new bootstrap.Modal(document.getElementById('bookingConfirmModal'));
+
+        // Populate the confirmation modal
+        document.getElementById('confirm_lab_name').value = bookingData.lab;
+        document.getElementById('confirm_start_iso').value = bookingData.start;
+        document.getElementById('confirm_end_iso').value = bookingData.end;
+        document.getElementById('confirm_students').value = bookingData.students;
+
+        // Format times for display
+        const startTime = new Date(bookingData.start);
+        const endTime = new Date(bookingData.end);
+        const timeFormat = { dateStyle: 'medium', timeStyle: 'short' };
+        document.getElementById('confirm_start_time').value = startTime.toLocaleString([], timeFormat);
+        document.getElementById('confirm_end_time').value = endTime.toLocaleString([], timeFormat);
+
+        confirmModal.show();
+    }
+
+    // Shift request logic remains unchanged
+    if (target && target.classList.contains("shift-btn")) {
+        const lab = target.dataset.lab;
+        const start = target.dataset.start;
+        const end = target.dataset.end;
+        const query = {
+            type: "request_shift",
+            data: { lab_name: lab, start_time: start, end_time: end },
+        };
+        ws.send(JSON.stringify(query));
+        statusEl.innerText = `Requesting negotiation to shift booking in ${lab}...`;
+    }
+});
+        chatInput.addEventListener("keypress", (event) => {
+          if (event.key === "Enter") {
+            sendBtn.click();
+          }
+        });
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = false;
+          recognition.lang = "en-US";
+          micBtn.addEventListener("click", () => {
+            statusEl.innerText = "Status: Listening...";
+            micBtn.classList.add("is-listening");
+            recognition.start();
+          });
+          recognition.onresult = (event) => {
+            const query = event.results[0][0].transcript;
+            chatInput.value = query;
+            sendQuery(query);
+          };
+          recognition.onend = () => {
+            statusEl.innerText = "Status: Processing...";
+            micBtn.classList.remove("is-listening");
+          };
+          recognition.onerror = (event) => {
+            statusEl.innerText = `Error: ${event.error}`;
+            micBtn.classList.remove("is-listening");
+          };
+        } else {
+          micBtn.disabled = true;
+          statusEl.innerText = "Status: Voice recognition not supported.";
+        }
+        const currentTheme = localStorage.getItem("theme");
+        if (currentTheme) {
+          document.body.classList.add(currentTheme);
+          if (currentTheme === "dark-mode") themeSwitch.checked = true;
+        }
+        // THEME SWITCH: replace the previous listener with this
+        themeSwitch.addEventListener("change", function () {
+          const willDark = themeSwitch.checked;
+          if (willDark) {
+            document.body.classList.add("dark-mode");
+          } else {
+            document.body.classList.remove("dark-mode");
+          }
+          // Save a simple value for later restore
+          localStorage.setItem("theme", willDark ? "dark-mode" : "light-mode");
+
+          // Optional: tweak other UI bits instantly (example: set aria-label)
+          themeSwitch.setAttribute('aria-label', willDark ? 'Switch to light theme' : 'Switch to dark theme');
+        });
+
+        connectWebSocket();
+      });
+
+
+      // Add entrance animations
+      document.querySelectorAll('.card').forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+
+      // Smooth scroll
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+    </script>
+
+
+  </body>
+</html>
