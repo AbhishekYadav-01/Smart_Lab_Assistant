@@ -49,4 +49,4 @@ uvicorn
 jinja2
 python-multipart
 # Note: Python 3.10+ required 
-pip install pydantic[email]                                                 
+pydantic[email]                                                 
