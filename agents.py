@@ -1,8 +1,8 @@
 import json
 import re
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta, timezone
-from starlette.concurrency import run_in_threadpool
+from datetime import datetime, timedelta
+
 from autogen_agentchat.agents import AssistantAgent
 from auth import User 
 from config import model_client
@@ -34,7 +34,7 @@ class HeadLabAssistantAgent:
         parsing_task = f"""
         You are an expert at parsing user requests for lab bookings. Your task is to extract key details from a query.
 
-        - The current date is {datetime.now(timezone.utc).strftime('%A, %Y-%m-%d')}.
+        - The current date is {datetime.now().strftime('%A, %Y-%m-%d')}.
         - If a specific lab name is mentioned (e.g., "AI Lab", "Robotics Lab"), extract it into a "lab_name" key.
         - If specific equipment or features are mentioned (e.g., "computers", "soldering iron"), extract them as a list in an "equipment" key.
         - If the number of students is not mentioned, default to 1.
@@ -51,13 +51,12 @@ class HeadLabAssistantAgent:
         Now, parse the following query. Respond ONLY with a valid JSON object.
         QUERY: "{query_text}"
         """
-        # response = await self.agent.run(task=parsing_task)
+        response = await self.agent.run(task=parsing_task)
         try:
-            response = await self.agent.run(task=parsing_task)
             content = str(response.messages[-1].content)
             json_str = content[content.find('{'):content.rfind('}')+1]
             return json.loads(json_str)
-        except (json.JSONDecodeError, IndexError, AttributeError):
+        except (json.JSONDecodeError, IndexError):
             print(f"[{self.name}] ERROR: Failed to parse user query.")
             return None
 

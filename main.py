@@ -1,5 +1,5 @@
 # main.py
-from datetime import timedelta , datetime, time,timezone
+from datetime import timedelta , datetime, time
 import fastapi
 import asyncio
 import json
@@ -301,7 +301,7 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
         "data": {"username": current_user.username, "role": current_user.role, "full_name": current_user.full_name}
     }))
 
-    today = datetime.now(timezone.utc)
+    today = datetime.now()
     start_of_week = today - timedelta(days=today.weekday())
     end_of_week = start_of_week + timedelta(days=7)
     initial_schedule = await system.get_schedule_for_range(start_of_week, end_of_week)
@@ -314,8 +314,8 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
             message = json.loads(data)
 
             if message.get("type") == "get_schedule_for_range":
-                start_date = datetime.fromisoformat(message["data"]["start"]).replace(tzinfo=timezone.utc)
-                end_date = datetime.fromisoformat(message["data"]["end"]).replace(tzinfo=timezone.utc)
+                start_date = datetime.fromisoformat(message["data"]["start"])
+                end_date = datetime.fromisoformat(message["data"]["end"])
                 schedule_data = await system.get_schedule_for_range(start_date, end_date)
                 await websocket.send_text(json.dumps({"type": "schedule_update", "data": schedule_data}))
             
