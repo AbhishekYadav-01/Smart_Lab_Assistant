@@ -2,7 +2,7 @@ import json
 import re
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-
+from starlette.concurrency import run_in_threadpool
 from autogen_agentchat.agents import AssistantAgent
 from auth import User 
 from config import model_client
@@ -51,12 +51,13 @@ class HeadLabAssistantAgent:
         Now, parse the following query. Respond ONLY with a valid JSON object.
         QUERY: "{query_text}"
         """
-        response = await self.agent.run(task=parsing_task)
+        # response = await self.agent.run(task=parsing_task)
         try:
+            response = await self.agent.run(task=parsing_task)
             content = str(response.messages[-1].content)
             json_str = content[content.find('{'):content.rfind('}')+1]
             return json.loads(json_str)
-        except (json.JSONDecodeError, IndexError):
+        except (json.JSONDecodeError, IndexError, AttributeError):
             print(f"[{self.name}] ERROR: Failed to parse user query.")
             return None
 

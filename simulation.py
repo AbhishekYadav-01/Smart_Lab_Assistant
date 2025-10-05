@@ -32,11 +32,31 @@ class MultiAgentTrafficSystem:
             end_of_week = start_of_week + timedelta(days=7)
             return await self.get_schedule_for_range(start_of_week, end_of_week)
 
+# In mas_visualization/simulation.py
+
     async def handle_availability_query(self, query_text: str, websocket: fastapi.WebSocket):
+        """
+        Orchestrates the handling of a user's availability query with a keep-alive task to prevent timeouts.
+        """
         async def send_update(msg_type, data):
-            await websocket.send_text(json.dumps({"type": msg_type, "data": data}))
+            # Wrapper to handle potential disconnects during sends
+            try:
+                await websocket.send_text(json.dumps({"type": msg_type, "data": data}))
+            except Exception as e:
+                print(f"Could not send message, connection likely closed: {e}")
+
+        keep_alive_task = None
+        async def send_keep_alive():
+            """Sends a ping every 10 seconds to keep the WebSocket connection alive."""
+            while True:
+                await asyncio.sleep(10)
+                await send_update("log", "Still processing, please wait...")
 
         try:
+            # Start the keep-alive task in the background
+            keep_alive_task = asyncio.create_task(send_keep_alive())
+
+            # --- Original Logic ---
             await send_update("log", "Parsing your query with the Head Assistant Agent...")
             parsed_request = await self.head_assistant_agent.parse_user_query(query_text)
             
@@ -48,17 +68,8 @@ class MultiAgentTrafficSystem:
             requested_lab_name = parsed_request.get("lab_name")
             requested_equipment = parsed_request.get("equipment")
             
-            await send_update("log", f"Parsed Request: Looking for slots on {parsed_request['date']} from {parsed_request['start_time']} to {parsed_request['end_time']}.")
-
-            try:
-                date_str = parsed_request["date"]
-                start_str = parsed_request["start_time"]
-                end_str = parsed_request["end_time"]
-                request_start = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['start_time']}")
-                request_end = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['end_time']}")
-            except (ValueError, KeyError):
-                await send_update("error", "Invalid date/time format parsed. Please try again.")
-                return
+            request_start = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['start_time']}")
+            request_end = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['end_time']}")
 
             target_agents = self.lab_agents
             if requested_lab_name:
@@ -71,35 +82,35 @@ class MultiAgentTrafficSystem:
                 matching_lab_records = await database.fetch_all(matching_labs_query)
                 matching_lab_names = {lab['name'] for lab in matching_lab_records}
                 target_agents = [agent for agent in self.lab_agents if agent.lab_name in matching_lab_names]
-                if not target_agents:
-                    await send_update("log", "No labs found matching your specific criteria.")                    
-                    await send_update("availability_results", [])
-                    return
+
+            if not target_agents:
+                await send_update("log", "No labs found matching your specific criteria.")
+                await send_update("availability_results", [])
+                return
             
             await send_update("log", f"Broadcasting request to {len(target_agents)} relevant Lab Agent(s)...")
-            tasks = []
-            for agent in target_agents:
-                lab_record = await database.fetch_one(labs.select().where(labs.c.name == agent.lab_name))
-                bookings_query = bookings.select().where(bookings.c.lab_id == lab_record.id)
-                current_schedule = await database.fetch_all(bookings_query)
-                tasks.append(agent.check_availability(request_start, request_end, student_count, current_schedule))
-            
+            tasks = [agent.check_availability(request_start, request_end, student_count, await database.fetch_all(bookings.select().where(bookings.c.lab_id == (await database.fetch_one(labs.select().where(labs.c.name == agent.lab_name))).id))) for agent in target_agents]
             responses = await asyncio.gather(*tasks)
             
-            results = []
-            for i, response in enumerate(responses):
-                results.append({
-                    "lab_name": target_agents[i].lab_name,
-                    "status": response["status"], 
-                    "start_time": request_start.isoformat(), 
-                    "end_time": request_end.isoformat(),
-                    "student_count": student_count
-                })
+            results = [{
+                "lab_name": target_agents[i].lab_name,
+                "status": response["status"], 
+                "start_time": request_start.isoformat(), 
+                "end_time": request_end.isoformat(),
+                "student_count": student_count
+            } for i, response in enumerate(responses)]
+            
             await send_update("availability_results", results)
 
-        except Exception as e:
-            await send_update("error", f"An error occurred: {e}")
+        except (fastapi.WebSocketDisconnect, Exception) as e:
+            print(f"An error or disconnect occurred in handle_availability_query: {e}")
+            # The finally block will handle cleanup
+        finally:
+            # Crucial: Always cancel the keep-alive task when the function finishes or errors out.
+            if keep_alive_task:
+                keep_alive_task.cancel()
 
+                
     async def get_schedule_for_range(self, start_date: datetime, end_date: datetime) -> dict:
         query = bookings.select().where(
             bookings.c.start_time >= start_date,
