@@ -314,8 +314,8 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
             message = json.loads(data)
 
             if message.get("type") == "get_schedule_for_range":
-                start_date = datetime.fromisoformat(message["data"]["start"])
-                end_date = datetime.fromisoformat(message["data"]["end"])
+                start_date = datetime.fromisoformat(message["data"]["start"]).replace(tzinfo=timezone.utc)
+                end_date = datetime.fromisoformat(message["data"]["end"]).replace(tzinfo=timezone.utc)
                 schedule_data = await system.get_schedule_for_range(start_date, end_date)
                 await websocket.send_text(json.dumps({"type": "schedule_update", "data": schedule_data}))
             

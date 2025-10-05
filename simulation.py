@@ -141,8 +141,8 @@ class MultiAgentTrafficSystem:
         target_agent = self.agent_map.get(f"LabAgent_{lab_name.replace(' ', '_')}")
         if not target_agent: return
 
-        request_start = datetime.fromisoformat(data['start_time'])
-        request_end = datetime.fromisoformat(data['end_time'])
+        request_start = datetime.fromisoformat(f"{date_str}T{start_str}").replace(tzinfo=timezone.utc)
+        request_end = datetime.fromisoformat(f"{date_str}T{end_str}").replace(tzinfo=timezone.utc)
         
         check_result = await target_agent.check_availability(request_start, request_end, 1)
         conflicting_booking = check_result.get("booking")
