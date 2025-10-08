@@ -1,5 +1,5 @@
 # main.py
-from datetime import timedelta , datetime, time
+from datetime import timedelta , datetime, time , timezone 
 import fastapi
 import asyncio
 import json
@@ -32,7 +32,8 @@ from auth import (
 )
 
 app = fastapi.FastAPI()
-templates = Jinja2Templates(directory="templates")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 class LabCreate(BaseModel):
     name: str
@@ -74,15 +75,18 @@ class ConnectionManager:
         self.active_connections.append(websocket)
 
     def disconnect(self, websocket: fastapi.WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str):
-        send_tasks = [connection.send_text(message) for connection in self.active_connections]
-        results = await asyncio.gather(*send_tasks, return_exceptions=True)
-
-        for i in range(len(self.active_connections) - 1, -1, -1):
-            if isinstance(results[i], Exception):
-                self.active_connections.pop(i)
+        disconnected_connections = []
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except RuntimeError:
+                disconnected_connections.append(connection)
+        for connection in disconnected_connections:
+            self.disconnect(connection)
 
 manager = ConnectionManager()
 
@@ -164,7 +168,7 @@ async def admin_page(request: Request, current_user: User = Depends(get_current_
     })
 
 @app.post("/token", response_model=Token)
-async def login_for_access_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends()): 
     query = users.select().where(users.c.username == form_data.username)
     user_record = await database.fetch_one(query)
     if not user_record or not verify_password(form_data.password, user_record['hashed_password']):
@@ -301,7 +305,7 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
         "data": {"username": current_user.username, "role": current_user.role, "full_name": current_user.full_name}
     }))
 
-    today = datetime.now()
+    today = datetime.now(timezone.utc) 
     start_of_week = today - timedelta(days=today.weekday())
     end_of_week = start_of_week + timedelta(days=7)
     initial_schedule = await system.get_schedule_for_range(start_of_week, end_of_week)
@@ -338,7 +342,7 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
 
                     await websocket.send_text(json.dumps({"type":"booking_confirmation","data":{"message":"Booking cancelled.","booking_id": result.get("booking_id")}}))
 
-                    now = datetime.now()
+                    now = datetime.now(timezone.utc)
                     start_of_week = now - timedelta(days=now.weekday())
                     end_of_week = start_of_week + timedelta(days=7)
                     updated_schedule = await system.get_schedule_for_range(start_of_week, end_of_week)
@@ -352,6 +356,12 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
 
     except fastapi.WebSocketDisconnect:
         manager.disconnect(websocket)
+    except Exception as e:
+        print(f"An unexpected error occurred in websocket: {e}")
+        manager.disconnect(websocket)
+    finally:
+        manager.disconnect(websocket)
+
 
 @app.on_event("startup")
 async def startup():

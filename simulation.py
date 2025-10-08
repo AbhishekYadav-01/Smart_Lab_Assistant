@@ -1,7 +1,7 @@
 # simulation.py
 import asyncio
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import fastapi 
 import sqlalchemy 
 from auth import User 
@@ -20,14 +20,14 @@ class MultiAgentTrafficSystem:
         self.agent_map: Dict[str, LabAgent] = {}
 
     async def broadcast_schedule_update(self):
-        today = datetime.now()
+        today = datetime.now(timezone.utc)
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=7)
         schedule_data = await self.get_schedule_for_range(start_of_week, end_of_week)
         await self.manager.broadcast(json.dumps({"type": "schedule_update", "data": schedule_data}))
 
     async def get_full_schedule(self) -> dict:
-            today = datetime.now()
+            today = datetime.now(timezone.utc)
             start_of_week = today - timedelta(days=today.weekday())
             end_of_week = start_of_week + timedelta(days=7)
             return await self.get_schedule_for_range(start_of_week, end_of_week)
@@ -54,8 +54,8 @@ class MultiAgentTrafficSystem:
                 date_str = parsed_request["date"]
                 start_str = parsed_request["start_time"]
                 end_str = parsed_request["end_time"]
-                request_start = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['start_time']}")
-                request_end = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['end_time']}")
+                request_start = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['start_time']}").replace(tzinfo=timezone.utc)
+                request_end = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['end_time']}").replace(tzinfo=timezone.utc)
             except (ValueError, KeyError):
                 await send_update("error", "Invalid date/time format parsed. Please try again.")
                 return
