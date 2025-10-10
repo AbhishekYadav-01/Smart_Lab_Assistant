@@ -82,7 +82,7 @@ class MultiAgentTrafficSystem:
                 lab_record = await database.fetch_one(labs.select().where(labs.c.name == agent.lab_name))
                 bookings_query = bookings.select().where(bookings.c.lab_id == lab_record.id)
                 current_schedule = await database.fetch_all(bookings_query)
-                tasks.append(agent.check_availability(request_start, request_end, student_count, current_schedule))
+                tasks.append(agent.check_availability(request_start, request_end, student_count, current_schedule,lab_record.operating_start_time,lab_record.operating_end_time))
             
             responses = await asyncio.gather(*tasks)
             
@@ -181,17 +181,19 @@ class MultiAgentTrafficSystem:
             if target_agent:
                 latest_schedule_query = bookings.select().where(bookings.c.lab_id == lab_record.id)
                 latest_schedule = await database.fetch_all(latest_schedule_query)
-                availability = await target_agent.check_availability(start_time, end_time, student_count, latest_schedule)
+                availability = await target_agent.check_availability(start_time, end_time, student_count, latest_schedule,lab_record.operating_start_time,
+lab_record.operating_end_time)
             if availability['status'] != 'AVAILABLE':
-                error_msg = "Booking failed: The slot is no longer available."
+                error_msg = f"Booking failed: The slot is no longer available."
                 if availability['status'] == 'CONFLICT_CAPACITY':
-                    lab_capacity = lab_record.capacity
-                    error_msg = f"Booking failed: Student count ({student_count}) exceeds lab capacity of {lab_capacity}."
+                    error_msg = f"Booking failed: Student count ({student_count}) exceeds lab capacity of {lab_record.capacity}."
+                elif availability['status'].startswith('CONFLICT_HOURS'):
+                    # Use the detailed message from the agent
+                    error_msg = f"Booking failed: {availability['status'].split(': ')[1]}"
                 elif availability['status'] == 'CONFLICT_RIGID':
                     owner = availability.get('owner', 'another user')
                     error_msg = f"Booking failed: Slot is booked by {owner}."
-                    if owner == self.current_user.username:
-                        error_msg = "Booking failed: You have already booked this lab for an overlapping time."
+                
                 await websocket.send_text(json.dumps({"type": "error", "data": error_msg}))
                 return
             

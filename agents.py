@@ -1,7 +1,7 @@
 import json
 import re
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta,timezone
+from datetime import datetime, timedelta,timezone, time
 
 from autogen_agentchat.agents import AssistantAgent
 from auth import User 
@@ -76,10 +76,17 @@ class LabAgent:
         self.reputation_scores = {name: 10 for name in all_agent_names if name != self.name}
 
 
-    async def check_availability(self, request_start: datetime, request_end: datetime, requested_student_count: int, current_schedule: list) -> dict:
+    async def check_availability(self, request_start: datetime, request_end: datetime, requested_student_count: int, current_schedule: list,operating_start: Optional[time] = None,operating_end: Optional[time] = None) -> dict:
         """Checks for conflicts against a provided schedule, now also checking capacity."""
         if self.capacity < requested_student_count:
             return {"status": "CONFLICT_CAPACITY", "owner": None, "booking": None}
+
+        if operating_start and operating_end:
+            request_start_time = request_start.time()
+            request_end_time = request_end.time()
+            # Handle overnight bookings simply by checking start and end separately
+            if not (operating_start <= request_start_time < operating_end and operating_start < request_end_time <= operating_end):
+                return {"status": f"CONFLICT_HOURS: Lab is only open from {operating_start.strftime('%I:%M %p')} to {operating_end.strftime('%I:%M %p')}", "owner": None, "booking": None}
 
         for booking_data in current_schedule:
             booking_start = booking_data["start_time"]
