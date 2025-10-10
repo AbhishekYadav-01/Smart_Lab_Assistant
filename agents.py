@@ -85,6 +85,11 @@ class LabAgent:
             booking_start = booking_data["start_time"]
             booking_end = booking_data["end_time"]
             
+            if booking_start.tzinfo is None:
+                booking_start = booking_start.replace(tzinfo=timezone.utc)
+            if booking_end.tzinfo is None:
+                booking_end = booking_end.replace(tzinfo=timezone.utc)
+
             if (request_start < booking_end) and (request_end > booking_start):
                 conflict_details = {
                     "status": "CONFLICT_RIGID", 

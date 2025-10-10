@@ -219,35 +219,38 @@ class MultiAgentTrafficSystem:
             await websocket.send_text(json.dumps({"type": "error", "data": "Booking failed: Invalid lab or user."}))
 
     async def handle_cancellation_request(self, data: dict, websocket: fastapi.WebSocket):
-        lab_name = data['lab_name']
+        lab_name = data.get('lab_name') # Use .get() for safety
         start_time_str = data.get('start_time')
         booking_id = data.get('booking_id')
+        booking_record = None # Define booking_record to ensure it's available later
 
         agent_to_update = self.agent_map.get(f"LabAgent_{lab_name.replace(' ', '_')}")
         if not agent_to_update:
-            await websocket.send_text(json.dumps({"type": "error", "data": "Invalid lab agent."}))
-            return
+            # Instead of sending a message, return a dictionary
+            return {"ok": False, "error": "Invalid lab agent."}
 
         if booking_id:
             booking_record = await database.fetch_one(bookings.select().where(bookings.c.id == booking_id))
             if not booking_record:
-                await websocket.send_text(json.dumps({"type": "error", "data": "Booking not found."}))
-                return
+                # Return a dictionary on failure
+                return {"ok": False, "error": "Booking not found."}
             start_time = booking_record.start_time
         elif start_time_str:
-             start_time = datetime.fromisoformat(start_time_str)
+            start_time = datetime.fromisoformat(start_time_str)
         else:
-            await websocket.send_text(json.dumps({"type": "error", "data": "Booking identifier missing."}))
-            return
+            # Return a dictionary on failure
+            return {"ok": False, "error": "Booking identifier missing."}
 
         success, message = await agent_to_update.cancel_booking(start_time, self.current_user)
         
         if success:
-            await websocket.send_text(json.dumps({"type": "log", "data": f"✅ Booking in {lab_name} successfully cancelled."}))
-            await self.broadcast_schedule_update()
+            # On success, return a dictionary. Your main.py will handle the broadcast and confirmation.
+            booking_id_to_return = booking_id or (booking_record and booking_record.id)
+            return {"ok": True, "booking_id": booking_id_to_return}
         else:
-            await websocket.send_text(json.dumps({"type": "error", "data": message}))
-
+            # On failure, return the error message from the agent.
+            return {"ok": False, "error": message}
+        
     async def handle_student_count_update(self, data: dict, websocket: fastapi.WebSocket):
         booking_id = data.get('booking_id')
         new_student_count = data.get('student_count')
