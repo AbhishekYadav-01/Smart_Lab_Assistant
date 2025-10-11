@@ -353,6 +353,9 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
             elif message.get("type") == "get_full_schedule":
                 full_schedule_data = system.get_full_schedule()
                 await websocket.send_text(json.dumps({"type": "full_schedule_update", "data": full_schedule_data}))
+            elif message.get("type") == "new_conversation":
+                system.conversation_state = {}
+                await websocket.send_text(json.dumps({"type": "log", "data": "New conversation started."}))
 
     except fastapi.WebSocketDisconnect:
         manager.disconnect(websocket)

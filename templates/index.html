@@ -77,7 +77,7 @@
       
       .container {
         position: relative;
-        z-index: 1;
+        z-index: auto;
       }
       
       /* Enhanced navbar with glassmorphism */
@@ -974,7 +974,38 @@
           color: var(--text-color) !important;
         }
 
-    </style>
+/* --- FIXED Styles for Manual Booking Modal --- */
+#manualBookingModal .modal-content {
+    background: var(--card-bg-color) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+#manualBookingModal .modal-header {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+#manualBookingModal .modal-footer {
+    border-top: 1px solid var(--border-color) !important;
+}
+
+/* Force modal to be above everything */
+.modal-backdrop {
+    z-index: 1040 !important;
+}
+
+.modal {
+    z-index: 1050 !important;
+}
+
+#manualBookingModal {
+    z-index: 1060 !important;
+}
+/* --- End of Fix --- */
+
+        </style>
   </head>
   <body>
      <nav class="navbar navbar-expand-lg">
@@ -1035,12 +1066,23 @@
         </div>
     </nav>
 
-      <div class="container query-container mt-4">
+<div class="container query-container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="mb-0">Lab Booking Dashboard</h2>
-            <div id="userInfo" class="text-muted"></div>
-        </div>
+            <div> <button class="btn btn-sm btn-outline-secondary" id="newBookingBtn">
+                    <i class="fas fa-sync-alt me-1"></i> Start New Booking
+                </button>
+                <button class="btn btn-sm btn-outline-primary" id="toggleManualBookingBtn">
+                    <i class="fas fa-edit me-1"></i> Manual Booking
+                </button>
 
+                <button class="btn btn-sm btn-outline-info" id="toggleScheduleBtn">
+                    <i class="fas fa-calendar-alt me-1"></i> View Schedule
+                </button>
+
+            </div>
+        </div>
+        <div id="userInfo" class="text-muted"></div>
         <div class="card">
             <div class="card-header">
                 <h5><i class="fas fa-question-circle"></i> Ask for Availability</h5>
@@ -1068,11 +1110,14 @@
             </div>
         </div>
 
-        <div class="card mt-4">
-            <div class="card-header">
-                <i class="fas fa-edit"></i> Manual Booking
-            </div>
-            <div class="card-body">
+<div class="modal fade" id="manualBookingModal" tabindex="-1" aria-labelledby="manualBookingModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="manualBookingModalLabel"><i class="fas fa-edit me-1"></i> Manual Booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
                 <form id="manualBookingForm">
                     <div class="mb-2">
                         <label for="labName" class="form-label">Lab Name</label>
@@ -1117,9 +1162,12 @@
                         <i class="fas fa-search"></i> Check Availability
                     </button>
                 </form>
+              </div>
             </div>
+          </div>
         </div>
-
+        
+        
         <div class="card mt-4">
             <div class="card-header">
                 <h5><i class="fas fa-clipboard-list"></i> Results</h5>
@@ -1129,9 +1177,14 @@
             </div>
         </div>
         
-        
-        <div class="card mt-4">
-            <div class="card-header">
+ <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="scheduleModalLabel"><i class="fas fa-calendar-alt me-1"></i> Weekly Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
                 <div class="calendar-nav">
                     <div>
                         <button class="btn btn-sm btn-outline-secondary" id="prevBtn">
@@ -1154,12 +1207,11 @@
                         />
                     </div>
                 </div>
+                <div id="schedulePanel"></div>
+              </div>
             </div>
-            <div class="card-body" id="schedulePanel"></div>
-        </div>
-
-    </div>
-
+          </div>
+        </div>       
 
 <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
@@ -1274,7 +1326,18 @@
         const schedulePanel = document.getElementById("schedulePanel"); // New UI element
         const resultsPanel = document.getElementById("resultsPanel");
         const themeSwitch = document.getElementById("themeSwitch");
-        const manualBookingCard = document.getElementById("manualBookingCard"); // <-- GET THE CARD
+        // const manualBookingCard = document.getElementById("manualBookingCard"); // <-- GET THE CARD
+
+        const newBookingBtn = document.getElementById("newBookingBtn");
+        newBookingBtn.addEventListener("click", () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                // Send a message to the server to clear its memory for our conversation
+                ws.send(JSON.stringify({ type: "new_conversation" }));
+                resultsPanel.innerHTML = '<p class="text-muted">New booking started. Ask me anything!</p>';
+                statusEl.innerText = "Status: Ready";
+            }
+        });
+
         let currentUser = null;
 
         let ws;
@@ -1457,15 +1520,106 @@
         }
     });
 })();
+const toggleManualBtn = document.getElementById("toggleManualBookingBtn");
+        const manualBookingModal = new bootstrap.Modal(document.getElementById('manualBookingModal'));
 
+        toggleManualBtn.addEventListener("click", () => {
+            manualBookingModal.show();
+        });
+
+
+        const toggleScheduleBtn = document.getElementById("toggleScheduleBtn");
+        const scheduleModal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+
+        toggleScheduleBtn.addEventListener("click", () => {
+            scheduleModal.show();
+        });
+
+        
+                document.getElementById("manualBookingForm").addEventListener("submit", function (event) {
+            event.preventDefault(); // Stop the form from reloading the page
+
+            const labName = document.getElementById("labName").value;
+            const date = document.getElementById("bookingDate").value;
+            const startTime = document.getElementById("startTime").value;
+            const endTime = document.getElementById("endTime").value;
+            const students = document.getElementById("studentCount").value;
+
+            let query = `Is ${labName} available on ${date} from ${startTime} to ${endTime} for ${students} students?`;
+            if (labName === "Any Lab") {
+              query = `Is any lab available on ${date} from ${startTime} to ${endTime} for ${students} students?`;
+            }
+
+            sendQuery(query);
+
+            manualBookingModal.hide(); // Hide the modal after submitting
+        });
+
+        function renderConversation(speaker, text) {
+            // Clear the panel if it's the first message from the agent in a sequence
+            if (speaker === 'agent' && !resultsPanel.querySelector('.agent-message')) {
+                resultsPanel.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('p-2', 'rounded', 'mb-2', speaker === 'user' ? 'bg-light' : 'bg-primary', speaker === 'user' ? 'text-dark' : 'text-white');
+            messageDiv.style.textAlign = speaker === 'user' ? 'right' : 'left';
+            messageDiv.innerHTML = `<strong>${speaker === 'user' ? 'You' : 'Agent'}:</strong> ${text}`;
+            resultsPanel.appendChild(messageDiv);
+            resultsPanel.scrollTop = resultsPanel.scrollHeight; // Auto-scroll
+        }
+
+        function addConfirmationButtons() {
+            const buttonGroup = document.createElement('div');
+            buttonGroup.className = 'text-center mt-2'; // Center the buttons
+            buttonGroup.innerHTML = `
+                <button class="btn btn-sm btn-success" id="confirmQueryBtn">
+                    <i class="fas fa-check"></i> Confirm & Search
+                </button>
+                <button class="btn btn-sm btn-outline-danger" id="cancelQueryBtn">
+                    <i class="fas fa-times"></i> Modify Details
+                </button>
+            `;
+            resultsPanel.appendChild(buttonGroup);
+
+            // Add event listeners for the new buttons
+            document.getElementById('confirmQueryBtn').addEventListener('click', () => {
+                sendQuery('Yes, go ahead');
+                // Disable buttons after click to prevent multiple submissions
+                buttonGroup.innerHTML = '<p class="text-muted">Confirming...</p>';
+            });
+
+            document.getElementById('cancelQueryBtn').addEventListener('click', () => {
+                sendQuery('No, I want to change something');
+                buttonGroup.innerHTML = ''; // Remove buttons
+            });
+        }
 
         // --- Main message handler ---
         function handleServerMessage(event) {
           console.log("Message from server:", event.data);
           const message = JSON.parse(event.data);
 
-                    // --- ADD THIS NEW 'else if' BLOCK ---
-          if (message.type === "labs_updated") {
+if (message.type === "agent_speak") {
+              const textToSpeak = message.data;
+              statusEl.innerText = textToSpeak;
+              renderConversation('agent', textToSpeak);
+
+              // Use the browser's Speech Synthesis API
+              const utterance = new SpeechSynthesisUtterance(textToSpeak);
+              utterance.rate = 1.1;
+              speechSynthesis.speak(utterance);
+
+              // --- ADD THIS LOGIC ---
+              // If the agent's question is a confirmation, add the buttons
+              if (textToSpeak.toLowerCase().includes("shall i go ahead")) {
+                  addConfirmationButtons();
+              }
+              // --- END OF ADDITION ---
+          }
+          // --- END OF NEW BLOCK ---
+
+          else if (message.type === "labs_updated") {
               Toastify({
                   text: "Lab list has been updated by an admin.",
                   duration: 3000,
@@ -1769,6 +1923,7 @@ cellContent += `
         // --- FIX: Re-integrated the query sending logic ---
         function sendQuery(queryText) {
           if (!queryText) return;
+          renderConversation('user', queryText); // Display user's message
           Toastify({ text: "Processing your query...", duration: 2500, gravity: "top", position: "center" }).showToast();
           if (!ws || ws.readyState !== WebSocket.OPEN) {
             statusEl.innerText = "Status: Not connected. Please wait.";
@@ -1781,26 +1936,6 @@ cellContent += `
 
           ws.send(JSON.stringify({ type: "user_query", data: queryText }));
         }
-
-        document
-          .getElementById("manualBookingForm")
-          .addEventListener("submit", function (event) {
-            event.preventDefault(); // Prevent page reload
-
-            const labName = document.getElementById("labName").value;
-            const date = document.getElementById("bookingDate").value;
-            const startTime = document.getElementById("startTime").value;
-            const endTime = document.getElementById("endTime").value;
-            const students = document.getElementById("studentCount").value;
-
-            // Construct a natural language query from the form data
-            let query = `Is ${labName} available on ${date} from ${startTime} to ${endTime} for ${students} students?`;
-            if (labName === "Any Lab") {
-              query = `Is any lab available on ${date} from ${startTime} to ${endTime} for ${students} students?`;
-            }
-
-            sendQuery(query);
-          });
 
         // --- FIX: Re-integrated event listeners for input buttons ---
         sendBtn.addEventListener("click", () => {
@@ -1830,12 +1965,19 @@ resultsPanel.addEventListener("click", function (event) {
         document.getElementById('confirm_end_iso').value = bookingData.end;
         document.getElementById('confirm_students').value = bookingData.students;
 
-        // Format times for display
         const startTime = new Date(bookingData.start);
         const endTime = new Date(bookingData.end);
-        const timeFormat = { dateStyle: 'medium', timeStyle: 'short' };
-        document.getElementById('confirm_start_time').value = startTime.toLocaleString([], timeFormat);
-        document.getElementById('confirm_end_time').value = endTime.toLocaleString([], timeFormat);
+
+        const timeFormatOptions = { 
+            dateStyle: 'medium', 
+            timeStyle: 'short', 
+            hour12: false,
+            timeZone: 'UTC'
+        };
+
+        // Display the UTC time in the confirmation modal
+        document.getElementById('confirm_start_time').value = startTime.toLocaleString('en-GB', timeFormatOptions) + " (UTC)";
+        document.getElementById('confirm_end_time').value = endTime.toLocaleTimeString('en-GB', { timeStyle: 'short', hour12: false, timeZone: 'UTC' }) + " (UTC)";
 
         confirmModal.show();
     }
@@ -1907,6 +2049,32 @@ resultsPanel.addEventListener("click", function (event) {
         });
 
         connectWebSocket();
+
+        // Fix for manual booking modal interactions
+        manualBookingModal._element.addEventListener('shown.bs.modal', function () {
+            // Force modal to be fully interactive
+            const modalContent = this.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.style.pointerEvents = 'auto';
+                modalContent.style.userSelect = 'auto';
+            }
+            
+            // Force focus to first input
+            const firstInput = this.querySelector('input, select, button');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        });
+
+        // Additional safety: prevent body scroll when modal is open
+        manualBookingModal._element.addEventListener('show.bs.modal', function () {
+            document.body.style.overflow = 'hidden';
+        });
+        
+        manualBookingModal._element.addEventListener('hide.bs.modal', function () {
+            document.body.style.overflow = 'auto';
+        });
+        
       });
 
 

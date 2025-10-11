@@ -28,38 +28,56 @@ class HeadLabAssistantAgent:
         )
         self.reputation_scores = {name: 10 for name in all_lab_agent_names}
 
-    async def parse_user_query(self, query_text: str) -> Optional[Dict]:
-        """Uses an LLM to parse a natural language query into a structured dictionary."""
-        
+    async def parse_user_query(self, query_text: str, history: Optional[Dict] = None) -> Optional[Dict]:
+        """
+        Parses a query, gathers all required details sequentially (including student count), 
+        generates a final confirmation question, and understands user approval.
+        """
+        history_str = json.dumps(history) if history else "{}"
+        conversation_status = history.get("status", "gathering_info")
+
         parsing_task = f"""
-        You are an expert at parsing user requests for lab bookings. Your task is to extract key details from a query.
+        You are a conversational AI lab assistant. Your goal is to gather all necessary information sequentially, confirm details, and understand user approval.
 
-        - The current date is {datetime.now(timezone.utc).strftime('%A, %Y-%m-%d')}.
-        - If a specific lab name is mentioned (e.g., "AI Lab", "Robotics Lab"), extract it into a "lab_name" key.
-        - If specific equipment or features are mentioned (e.g., "computers", "soldering iron"), extract them as a list in an "equipment" key.
-        - If the number of students is not mentioned, default to 1.
-        - The date must be in YYYY-MM-DD format and times in 24-hour format.
+        - The current state of gathered information is: {history_str}
+        - The current conversation status is: "{conversation_status}"
+        - The user's latest message is: "{query_text}"
+        - **IMPORTANT: If the user says "today", you MUST use the current date: {datetime.now(timezone.utc).strftime('%A, %Y-%m-%d')}.**
 
-        Here are some examples:
-        1. Query: "Is the AI Lab free next Tuesday afternoon for 20 people?"
-           JSON: {{"date": "2025-10-07", "start_time": "13:00", "end_time": "17:00", "student_count": 20, "lab_name": "AI Lab"}}
-        2. Query: "Is there a lab with a soldering iron available tomorrow morning?"
-           JSON: {{"date": "2025-10-05", "start_time": "09:00", "end_time": "12:00", "student_count": 1, "equipment": ["soldering iron"]}}
-        3. Query: "find a lab for 10 people on Monday from 2 to 4 PM"
-           JSON: {{"date": "2025-10-06", "start_time": "14:00", "end_time": "16:00", "student_count": 10}}
+        Follow these steps based on the conversation status:
 
-        Now, parse the following query. Respond ONLY with a valid JSON object.
-        QUERY: "{query_text}"
+        1.  If status is "gathering_info":
+            - Merge information from the user's message into the history.
+            - **Your required information sequence is: `date`, `start_time`, `end_time`, `student_count`.**
+            - If `date` is missing, ask for it.
+            - If `date` is present but `start_time` is missing, ask for the start time.
+            - If `start_time` is present but `end_time` is missing, ask for the end time.
+            - **If `end_time` is present but `student_count` is missing, ask for the number of students.**
+            - Once all four are present, change the status to "pending_confirmation".
+
+        2.  If status is "pending_confirmation":
+            - Analyze the user's message for intent.
+            - If the intent is **approval** (e.g., "yes", "go ahead", "correct"), you MUST set `user_approved` to `true` and set `clarification_question` to `null`. This is critical to stop the loop.
+            - If the intent is a **modification** (e.g., "change to 30 students"), update the details, remove `user_approved`, change status back to "gathering_info", and ask a new question if needed.
+
+        - When the status becomes "pending_confirmation" for the first time, your `clarification_question` MUST be a full summary including the student count.
+        Example: "Perfect! I have the following details: A booking for **30 students** on 2025-10-12 from 14:00 to 16:00. Shall I go ahead and check for availability?"
+
+        - If you don't have a `student_count` yet, you can default it to 1 in your internal thought process, but you must still ask the user to confirm.
+
+        Respond ONLY with a valid JSON object containing the full, updated state.
         """
         response = await self.agent.run(task=parsing_task)
         try:
             content = str(response.messages[-1].content)
-            json_str = content[content.find('{'):content.rfind('}')+1]
-            return json.loads(json_str)
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                return json.loads(json_str)
+            return {"status": "gathering_info", "clarification_question": "I'm sorry, I had trouble understanding that. Could you please rephrase?"}
         except (json.JSONDecodeError, IndexError):
-            print(f"[{self.name}] ERROR: Failed to parse user query.")
-            return None
-
+            return {"status": "gathering_info", "clarification_question": "I'm having a little trouble understanding. Could you tell me the date you need?"}
+                
 class LabAgent:
     def __init__(self, lab_name: str, capacity: int, all_agent_names: List[str]):
         self.lab_name = lab_name
@@ -80,6 +98,8 @@ class LabAgent:
         """Checks for conflicts against a provided schedule, now also checking capacity."""
         if self.capacity < requested_student_count:
             return {"status": "CONFLICT_CAPACITY", "owner": None, "booking": None}
+        if request_start < datetime.now(timezone.utc):
+            return {"status": "CONFLICT_PAST", "owner": None, "booking": None}
 
         if operating_start and operating_end:
             request_start_time = request_start.time()

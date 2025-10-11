@@ -192,6 +192,29 @@
             background-color: rgba(255, 255, 255, 0.15);
             color: var(--accent-color) !important;
         }  
+
+/* --- CORRECTED Styles for Transparent Modals --- */
+#addUserModal .modal-content,
+#addLabModal .modal-content {
+    background: rgba(40, 40, 70, 0.45);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px); /* For Safari */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode #addUserModal .modal-content,
+body.dark-mode #addLabModal .modal-content {
+    background: rgba(15, 18, 32, 0.65); /* Darker transparent card for dark mode */
+}
+
+#addUserModal .modal-header, #addUserModal .modal-footer,
+#addLabModal .modal-header, #addLabModal .modal-footer {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+/* --- End of Correction --- */
+
     </style>
 </head>
 <body>
@@ -476,84 +499,91 @@
         </div>
     </div>
 
-    <!-- Overlay Backdrop -->
-    <div class="overlay-backdrop" id="overlayBackdrop"></div>
-
-    <!-- Add User Overlay Card -->
-    <div class="overlay-card" id="addUserCard">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4>Add New User</h4>
-            <button type="button" class="btn-close" aria-label="Close" id="closeAddUserCard"></button>
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-glass">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="addUserForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="fullName" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="fullName" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">Email (@iitj.ac.in)</label>
+                        <input type="email" class="form-control" id="email" required pattern=".+@iitj\.ac\.in$">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="role" class="form-label">Role</label>
+                    <select class="form-select" id="role" required>
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Add User</button>
+            </form>
+          </div>
         </div>
-        <form id="addUserForm">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="fullName" class="form-label">Full Name</label>
-                    <input type="text" class="form-control" id="fullName" required>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="email" class="form-label">Email (@iitj.ac.in)</label>
-                    <input type="email" class="form-control" id="email" required pattern=".+@iitj\.ac\.in$">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" required>
-                </div>
-            </div>
-            <div class="mb-3">
-                <label for="role" class="form-label">Role</label>
-                <select class="form-select" id="role" required>
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Add User</button>
-        </form>
+      </div>
     </div>
 
-    <!-- Add Lab Overlay Card -->
-    <div class="overlay-card" id="addLabCard">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4>Add New Lab</h4>
-            <button type="button" class="btn-close" aria-label="Close" id="closeAddLabCard"></button>
+    <div class="modal fade" id="addLabModal" tabindex="-1" aria-labelledby="addLabModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-glass">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addLabModalLabel">Add New Lab</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="addLabForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">Lab Name</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="capacity" class="form-label">Capacity</label>
+                        <input type="number" class="form-control" id="capacity" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" rows="2"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="equipment" class="form-label">Equipment (comma-separated)</label>
+                    <input type="text" class="form-control" id="equipment">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="start_time" class="form-label">Operating Start Time</label>
+                        <input type="time" class="form-control" id="start_time">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="end_time" class="form-label">Operating End Time</label>
+                        <input type="time" class="form-control" id="end_time">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Lab</button>
+            </form>
+          </div>
         </div>
-        <form id="addLabForm">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="name" class="form-label">Lab Name</label>
-                    <input type="text" class="form-control" id="name" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="capacity" class="form-label">Capacity</label>
-                    <input type="number" class="form-control" id="capacity" required>
-                </div>
-            </div>
-            <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea class="form-control" id="description" rows="2"></textarea>
-            </div>
-            <div class="mb-3">
-                <label for="equipment" class="form-label">Equipment (comma-separated)</label>
-                <input type="text" class="form-control" id="equipment">
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="start_time" class="form-label">Operating Start Time</label>
-                    <input type="time" class="form-control" id="start_time">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="end_time" class="form-label">Operating End Time</label>
-                    <input type="time" class="form-control" id="end_time">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Lab</button>
-        </form>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -584,32 +614,51 @@
             });
         });
 
-        // Overlay card functionality
-        function showOverlayCard(cardId) {
-            document.getElementById(cardId).classList.add('show');
-            document.getElementById('overlayBackdrop').classList.add('show');
-        }
+        // // Overlay card functionality
+        // function showOverlayCard(cardId) {
+        //     document.getElementById(cardId).classList.add('show');
+        //     document.getElementById('overlayBackdrop').classList.add('show');
+        // }
 
-        function hideOverlayCard(cardId) {
-            document.getElementById(cardId).classList.remove('show');
-            document.getElementById('overlayBackdrop').classList.remove('show');
-        }
+        // function hideOverlayCard(cardId) {
+        //     document.getElementById(cardId).classList.remove('show');
+        //     document.getElementById('overlayBackdrop').classList.remove('show');
+        // }
 
-        // Event listeners for buttons
-        document.getElementById('addUserBtn').addEventListener('click', () => showOverlayCard('addUserCard'));
-        document.getElementById('closeAddUserCard').addEventListener('click', () => hideOverlayCard('addUserCard'));
+        // // Event listeners for buttons
+        // document.getElementById('addUserBtn').addEventListener('click', () => showOverlayCard('addUserCard'));
+        // document.getElementById('closeAddUserCard').addEventListener('click', () => hideOverlayCard('addUserCard'));
 
-        document.getElementById('addLabBtn').addEventListener('click', () => showOverlayCard('addLabCard'));
-        document.getElementById('closeAddLabCard').addEventListener('click', () => hideOverlayCard('addLabCard'));
+        // document.getElementById('addLabBtn').addEventListener('click', () => showOverlayCard('addLabCard'));
+        // document.getElementById('closeAddLabCard').addEventListener('click', () => hideOverlayCard('addLabCard'));
 
-        // Close overlay when clicking on backdrop
-        document.getElementById('overlayBackdrop').addEventListener('click', () => {
-            document.querySelectorAll('.overlay-card').forEach(card => {
-                card.classList.remove('show');
-            });
-            document.getElementById('overlayBackdrop').classList.remove('show');
+        // // Close overlay when clicking on backdrop
+        // document.getElementById('overlayBackdrop').addEventListener('click', () => {
+        //     document.querySelectorAll('.overlay-card').forEach(card => {
+        //         card.classList.remove('show');
+        //     });
+        //     document.getElementById('overlayBackdrop').classList.remove('show');
+        // });
+
+
+        // --- Modal Functionality ---
+        const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+        const addLabModal = new bootstrap.Modal(document.getElementById('addLabModal'));
+
+        // Event listeners for buttons to show the modals
+        document.getElementById('addUserBtn').addEventListener('click', () => addUserModal.show());
+        document.getElementById('addLabBtn').addEventListener('click', () => addLabModal.show());
+
+        // Event listeners for forms to hide the modals on submit
+        document.getElementById('addUserForm').addEventListener('submit', () => {
+            // A short delay to allow the API call to start before hiding
+            setTimeout(() => addUserModal.hide(), 500); 
         });
 
+        document.getElementById('addLabForm').addEventListener('submit', () => {
+            setTimeout(() => addLabModal.hide(), 500);
+        });
+        
         // Table pagination functionality
         function setupPagination(tableId, entriesSelectId, paginationId, pageSize = 10) {
             const table = document.getElementById(tableId);
@@ -795,7 +844,6 @@
                 }
                 // No need for Toastify/reload here, WebSocket will handle it
                 document.getElementById('addUserForm').reset(); // Clear the form
-                hideOverlayCard('addUserCard');
             } catch (error) {
                 Toastify({ text: `Error: ${error.message}`, backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)" }).showToast();
             }
@@ -827,7 +875,6 @@
                     throw new Error(errorData.detail || 'Failed to add lab');
                 }
                 document.getElementById('addLabForm').reset(); // Clear the form
-                hideOverlayCard('addLabCard');
             } catch (error) {
                 Toastify({ text: `Error: ${error.message}`, backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)" }).showToast();
             }

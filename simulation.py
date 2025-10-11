@@ -18,6 +18,8 @@ class MultiAgentTrafficSystem:
         self.head_assistant_agent = HeadLabAssistantAgent() 
         self.lab_agents: List[LabAgent] = []
         self.agent_map: Dict[str, LabAgent] = {}
+        self.conversation_state: Dict[str, Any] = {}
+
 
     async def broadcast_schedule_update(self):
         today = datetime.now(timezone.utc)
@@ -32,74 +34,78 @@ class MultiAgentTrafficSystem:
             end_of_week = start_of_week + timedelta(days=7)
             return await self.get_schedule_for_range(start_of_week, end_of_week)
 
+
     async def handle_availability_query(self, query_text: str, websocket: fastapi.WebSocket):
         async def send_update(msg_type, data):
             await websocket.send_text(json.dumps({"type": msg_type, "data": data}))
 
         try:
-            await send_update("log", "Parsing your query with the Head Assistant Agent...")
-            parsed_request = await self.head_assistant_agent.parse_user_query(query_text)
+            await send_update("log", "Thinking...")
             
-            if not parsed_request or not parsed_request.get("date") or not parsed_request.get("start_time"):
-                await send_update("error", "Sorry, I could not understand the time and date from your request. Please be more specific.")
+            agent_response = await self.head_assistant_agent.parse_user_query(query_text, self.conversation_state)
+            self.conversation_state = agent_response
+
+            if self.conversation_state.get("clarification_question"):
+                await send_update("agent_speak", self.conversation_state["clarification_question"])
                 return
 
-            student_count = parsed_request.get("student_count", 1)
-            requested_lab_name = parsed_request.get("lab_name")
-            requested_equipment = parsed_request.get("equipment")
-            
-            await send_update("log", f"Parsed Request: Looking for slots on {parsed_request['date']} from {parsed_request['start_time']} to {parsed_request['end_time']}.")
+            if self.conversation_state.get("user_approved") is True:
+                await send_update("log", f"Confirmed! Searching for slots...")
 
-            try:
-                date_str = parsed_request["date"]
-                start_str = parsed_request["start_time"]
-                end_str = parsed_request["end_time"]
-                request_start = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['start_time']}").replace(tzinfo=timezone.utc)
-                request_end = datetime.fromisoformat(f"{parsed_request['date']}T{parsed_request['end_time']}").replace(tzinfo=timezone.utc)
-            except (ValueError, KeyError):
-                await send_update("error", "Invalid date/time format parsed. Please try again.")
-                return
+                student_count = self.conversation_state.get("student_count", 1)
+                requested_lab_name = self.conversation_state.get("lab_name")
+                requested_equipment = self.conversation_state.get("equipment")
 
-            target_agents = self.lab_agents
-            if requested_lab_name:
-                await send_update("log", f"Searching specifically in {requested_lab_name}...")
-                target_agents = [agent for agent in self.lab_agents if agent.lab_name.lower() == requested_lab_name.lower()]
-            elif requested_equipment:
-                await send_update("log", f"Filtering for labs with: {', '.join(requested_equipment)}")
-                search_conditions = [sqlalchemy.or_(labs.c.equipment.ilike(f"%{item}%"), labs.c.description.ilike(f"%{item}%")) for item in requested_equipment]
-                matching_labs_query = labs.select().where(sqlalchemy.and_(*search_conditions))
-                matching_lab_records = await database.fetch_all(matching_labs_query)
-                matching_lab_names = {lab['name'] for lab in matching_lab_records}
-                target_agents = [agent for agent in self.lab_agents if agent.lab_name in matching_lab_names]
-                if not target_agents:
-                    await send_update("log", "No labs found matching your specific criteria.")                    
-                    await send_update("availability_results", [])
-                    return
-            
-            await send_update("log", f"Broadcasting request to {len(target_agents)} relevant Lab Agent(s)...")
-            tasks = []
-            for agent in target_agents:
-                lab_record = await database.fetch_one(labs.select().where(labs.c.name == agent.lab_name))
-                bookings_query = bookings.select().where(bookings.c.lab_id == lab_record.id)
-                current_schedule = await database.fetch_all(bookings_query)
-                tasks.append(agent.check_availability(request_start, request_end, student_count, current_schedule,lab_record.operating_start_time,lab_record.operating_end_time))
-            
-            responses = await asyncio.gather(*tasks)
-            
-            results = []
-            for i, response in enumerate(responses):
-                results.append({
-                    "lab_name": target_agents[i].lab_name,
-                    "status": response["status"], 
-                    "start_time": request_start.isoformat(), 
-                    "end_time": request_end.isoformat(),
-                    "student_count": student_count
-                })
-            await send_update("availability_results", results)
+                request_start = datetime.fromisoformat(f"{self.conversation_state['date']}T{self.conversation_state['start_time']}").replace(tzinfo=timezone.utc)
+                request_end = datetime.fromisoformat(f"{self.conversation_state['date']}T{self.conversation_state['end_time']}").replace(tzinfo=timezone.utc)
+
+                target_agents = self.lab_agents
+                if requested_lab_name:
+                    await send_update("log", f"Searching specifically in {requested_lab_name}...")
+                    target_agents = [agent for agent in self.lab_agents if agent.lab_name.lower() == requested_lab_name.lower()]
+                elif requested_equipment:
+                    await send_update("log", f"Filtering for labs with: {', '.join(requested_equipment)}")
+                    search_conditions = [sqlalchemy.or_(labs.c.equipment.ilike(f"%{item}%"), labs.c.description.ilike(f"%{item}%")) for item in requested_equipment]
+                    matching_labs_query = labs.select().where(sqlalchemy.and_(*search_conditions))
+                    matching_lab_records = await database.fetch_all(matching_labs_query)
+                    matching_lab_names = {lab['name'] for lab in matching_lab_records}
+                    target_agents = [agent for agent in self.lab_agents if agent.lab_name in matching_lab_names]
+                    if not target_agents:
+                        await send_update("log", "No labs found matching your specific criteria.")
+                        await send_update("availability_results", [])
+                        self.conversation_state = {}
+                        return
+
+                await send_update("log", f"Broadcasting request to {len(target_agents)} relevant Lab Agent(s)...")
+                tasks = []
+                for agent in target_agents:
+                    lab_record = await database.fetch_one(labs.select().where(labs.c.name == agent.lab_name))
+                    bookings_query = bookings.select().where(bookings.c.lab_id == lab_record.id)
+                    current_schedule = await database.fetch_all(bookings_query)
+                    tasks.append(agent.check_availability(request_start, request_end, student_count, current_schedule, lab_record.operating_start_time, lab_record.operating_end_time))
+
+                responses = await asyncio.gather(*tasks)
+                
+                results = []
+                for i, response in enumerate(responses):
+                    results.append({
+                        "lab_name": target_agents[i].lab_name,
+                        "status": response["status"],
+                        "start_time": request_start.isoformat(),
+                        "end_time": request_end.isoformat(),
+                        "student_count": student_count
+                    })
+                
+                await send_update("availability_results", results)
+
+                self.conversation_state = {}
 
         except Exception as e:
-            await send_update("error", f"An error occurred: {e}")
+            self.conversation_state = {}
+            error_message = f"An error occurred. Let's start over. (Details: {e})"
+            await send_update("error", error_message)
 
+            
     async def get_schedule_for_range(self, start_date: datetime, end_date: datetime) -> dict:
         query = bookings.select().where(
             bookings.c.start_time >= start_date,
@@ -172,7 +178,11 @@ class MultiAgentTrafficSystem:
         start_time = datetime.fromisoformat(data['start_time'])
         end_time = datetime.fromisoformat(data['end_time'])
         student_count = data.get('student_count', 1)
-        
+
+        if start_time < datetime.now(timezone.utc):
+            await websocket.send_text(json.dumps({"type": "error", "data": "Booking failed: Cannot book a lab for a time in the past."}))
+            return
+
         lab_record = await database.fetch_one(labs.select().where(labs.c.name == lab_name))
         user_record = await database.fetch_one(users.select().where(users.c.username == self.current_user.username))
         
@@ -188,7 +198,7 @@ lab_record.operating_end_time)
                 if availability['status'] == 'CONFLICT_CAPACITY':
                     error_msg = f"Booking failed: Student count ({student_count}) exceeds lab capacity of {lab_record.capacity}."
                 elif availability['status'].startswith('CONFLICT_HOURS'):
-                    # Use the detailed message from the agent
+
                     error_msg = f"Booking failed: {availability['status'].split(': ')[1]}"
                 elif availability['status'] == 'CONFLICT_RIGID':
                     owner = availability.get('owner', 'another user')
@@ -215,42 +225,42 @@ lab_record.operating_end_time)
             )
             await database.execute(query)
             await websocket.send_text(json.dumps({"type": "booking_confirmation", "data": {"lab_name": lab_name}}))
+            await websocket.send_text(json.dumps({"type": "log", "data": f"✅ {lab_name} has been booked successfully!"}))
             await self.broadcast_schedule_update()
             
         else:
             await websocket.send_text(json.dumps({"type": "error", "data": "Booking failed: Invalid lab or user."}))
 
     async def handle_cancellation_request(self, data: dict, websocket: fastapi.WebSocket):
-        lab_name = data.get('lab_name') # Use .get() for safety
+        lab_name = data.get('lab_name') 
         start_time_str = data.get('start_time')
         booking_id = data.get('booking_id')
-        booking_record = None # Define booking_record to ensure it's available later
+        booking_record = None 
 
         agent_to_update = self.agent_map.get(f"LabAgent_{lab_name.replace(' ', '_')}")
         if not agent_to_update:
-            # Instead of sending a message, return a dictionary
+
             return {"ok": False, "error": "Invalid lab agent."}
 
         if booking_id:
             booking_record = await database.fetch_one(bookings.select().where(bookings.c.id == booking_id))
             if not booking_record:
-                # Return a dictionary on failure
                 return {"ok": False, "error": "Booking not found."}
             start_time = booking_record.start_time
         elif start_time_str:
             start_time = datetime.fromisoformat(start_time_str)
         else:
-            # Return a dictionary on failure
+
             return {"ok": False, "error": "Booking identifier missing."}
 
         success, message = await agent_to_update.cancel_booking(start_time, self.current_user)
         
         if success:
-            # On success, return a dictionary. Your main.py will handle the broadcast and confirmation.
+
             booking_id_to_return = booking_id or (booking_record and booking_record.id)
             return {"ok": True, "booking_id": booking_id_to_return}
         else:
-            # On failure, return the error message from the agent.
+
             return {"ok": False, "error": message}
         
     async def handle_student_count_update(self, data: dict, websocket: fastapi.WebSocket):
