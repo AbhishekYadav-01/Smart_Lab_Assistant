@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from dotenv import load_dotenv
 from database import database
 from models import users
@@ -20,6 +20,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 class User(BaseModel):
+    organization_id: int 
     username: str
     email: Optional[str] = None
     full_name: Optional[str] = None
@@ -34,11 +35,21 @@ class Token(BaseModel):
     token_type: str
 
 class UserCreate(BaseModel):
+    organization_id: int
     username: str
     full_name: str
     email: str
     password: str
     role: str
+
+class OrganizationCreate(BaseModel):
+    org_name: str
+    email_domain: str
+    admin_username: str
+    admin_full_name: str
+    admin_email: EmailStr
+    admin_password: str
+
 
 async def get_user(username: str):
     query = users.select().where(users.c.username == username)
@@ -60,6 +71,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 async def create_user(user: UserCreate):
     hashed_password = pwd_context.hash(user.password)
     query = users.insert().values(
+        organization_id=user.organization_id,
         username=user.username,
         full_name=user.full_name,
         email=user.email,
@@ -84,12 +96,18 @@ async def _decode_token_and_get_user(token: str) -> User:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None:
+        organization_id: int = payload.get("org_id")
+
+        if username is None or organization_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
+    user_query = users.select().where(
+        users.c.username == username,
+        users.c.organization_id == organization_id
+    )
     
-    user = await get_user(username=username)
+    user = await database.fetch_one(user_query)
     if user is None:
         raise credentials_exception
     

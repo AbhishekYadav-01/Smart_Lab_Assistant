@@ -11,6 +11,8 @@ from pydantic import BaseModel
 import sqlalchemy
 from pydantic import BaseModel, EmailStr
 import os
+from auth import OrganizationCreate
+from models import organizations
 
 from simulation import MultiAgentTrafficSystem
 
@@ -90,10 +92,19 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@app.get("/", response_class=RedirectResponse)
-async def read_root():
-    """Redirects the root URL to the login page."""
-    return RedirectResponse(url="/login")
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    """Serves the new landing page."""
+    return templates.TemplateResponse("landing.html", {"request": request})
+
+
+@app.get("/org-register", response_class=HTMLResponse)
+async def org_register_page(request: Request):
+    return templates.TemplateResponse("org_register.html", {"request": request})
+
+@app.get("/org-login", response_class=HTMLResponse)
+async def org_login_page(request: Request):
+    return templates.TemplateResponse("org_login.html", {"request": request})
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def read_dashboard(request: Request):
@@ -102,11 +113,13 @@ async def read_dashboard(request: Request):
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    orgs = await database.fetch_all(organizations.select())
+    return templates.TemplateResponse("login.html", {"request": request, "organizations": orgs})
 
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
+    orgs = await database.fetch_all(organizations.select())
+    return templates.TemplateResponse("register.html", {"request": request, "organizations": orgs})
 
 @app.get("/profile", response_class=HTMLResponse)
 async def profile_page(request: Request):
@@ -141,12 +154,15 @@ async def get_all_labs():
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page(request: Request, current_user: User = Depends(get_current_user_from_cookie)):
-    if current_user.role != "super_admin":
+    if current_user.role not in ["org_admin", "super_admin"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this page")
-    
-    all_users = await database.fetch_all(users.select())
-    all_labs = await database.fetch_all(labs.select())
 
+    org_id = current_user.organization_id
+
+    all_users = await database.fetch_all(users.select().where(users.c.organization_id == org_id))
+    all_labs = await database.fetch_all(labs.select().where(labs.c.organization_id == org_id))
+
+    # --- THIS IS THE CORRECTED QUERY ---
     query = sqlalchemy.select(
         bookings.c.id,
         bookings.c.start_time,
@@ -157,41 +173,81 @@ async def admin_page(request: Request, current_user: User = Depends(get_current_
     ).select_from(
         bookings.join(users, bookings.c.user_id == users.c.id)
         .join(labs, bookings.c.lab_id == labs.c.id)
-    ).order_by(sqlalchemy.desc(bookings.c.start_time))
+    ).where(
+        bookings.c.organization_id == org_id
+    ).order_by(
+        sqlalchemy.desc(bookings.c.start_time)
+    )
+    # --- END OF CORRECTION ---
+    
     all_bookings = await database.fetch_all(query)
 
     return templates.TemplateResponse("admin.html", {
-        "request": request, 
-        "users": all_users, 
+        "request": request,
+        "users": all_users,
         "labs": all_labs,
         "bookings": all_bookings
     })
 
-@app.post("/token", response_model=Token)
-async def login_for_access_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends()): 
-    query = users.select().where(users.c.username == form_data.username)
+@app.post("/org-token", response_model=Token)
+async def login_for_org_admin_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
+    # Find a user with the given username who is an 'org_admin'
+    query = users.select().where(
+        users.c.username == form_data.username,
+        users.c.role == "org_admin" # IMPORTANT: Only allow org_admins to use this login
+    )
     user_record = await database.fetch_one(query)
+
     if not user_record or not verify_password(form_data.password, user_record['hashed_password']):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect username or password, or you are not an Organization Admin.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # The user is a valid org_admin, create their token
+    token_data = {"sub": user_record['username'], "org_id": user_record['organization_id']}
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user_record['username']}, expires_delta=access_token_expires
+        data=token_data, expires_delta=access_token_expires
     )
 
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="lax",
+    response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax")
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
+    # The organization_id is now passed in the 'scope' field
+    org_id = int(form_data.scopes[0]) if form_data.scopes else None
+    if org_id is None:
+        raise HTTPException(status_code=400, detail="Organization must be selected.")
+
+    # Find the user within the specified organization
+    query = users.select().where(
+        users.c.username == form_data.username,
+        users.c.organization_id == org_id
     )
-    
+    user_record = await database.fetch_one(query)
+
+    if not user_record or not verify_password(form_data.password, user_record['hashed_password']):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password for this organization",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # ADD organization_id to the JWT token payload
+    token_data = {"sub": user_record['username'], "org_id": org_id}
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data=token_data, expires_delta=access_token_expires
+    )
+
+    response.set_cookie(key="access_token", value=access_token, httponly=True, samesite="lax")
     return {"access_token": access_token, "token_type": "bearer"}
 
 class UserCreate(BaseModel):
+    organization_id: int
     username: str
     full_name: str
     email: str
@@ -200,32 +256,34 @@ class UserCreate(BaseModel):
 
 @app.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(user: UserCreate):
-    if not user.email.endswith("@iitj.ac.in"):
+    # Fetch the organization to validate the email domain
+    org_query = organizations.select().where(organizations.c.id == user.organization_id)
+    org = await database.fetch_one(org_query)
+    if not org:
+        raise HTTPException(status_code=400, detail="Invalid organization selected.")
+
+    if not user.email.endswith(org.required_email_domain):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid email domain. Only @iitj.ac.in is allowed."
-        )
-    query = users.select().where(users.c.username == user.username)
-    if await database.fetch_one(query):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered."
-        )
-    query = users.select().where(users.c.email == user.email)
-    if await database.fetch_one(query):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered."
+            detail=f"Invalid email domain. Only @{org.required_email_domain} is allowed for this organization."
         )
 
+    # Check for duplicate username within the same organization
+    query = users.select().where(users.c.username == user.username, users.c.organization_id == user.organization_id)
+    if await database.fetch_one(query):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered in this organization."
+        )
+    
     await create_user(user)
     return {"message": "User created successfully."}
 
 @app.post("/api/labs", status_code=status.HTTP_201_CREATED)
 async def create_lab(lab: LabCreate, current_user: User = Depends(get_current_active_user)):
-    if current_user.role != "super_admin":
+    if current_user.role not in ["org_admin", "super_admin"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
-    query = labs.insert().values(**lab.dict())
+    query = labs.insert().values(**lab.dict(),organization_id=current_user.organization_id)
     await database.execute(query)
     await manager.broadcast(json.dumps({"type": "labs_updated"}))
     return {"message": "Lab created successfully."}
@@ -297,7 +355,7 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
         return
 
     await manager.connect(websocket)
-    system = MultiAgentTrafficSystem(current_user=current_user, manager=manager)
+    system = MultiAgentTrafficSystem(current_user=current_user, manager=manager,org_id=current_user.organization_id)
     await system.initialize_system()
 
     await websocket.send_text(json.dumps({
@@ -369,20 +427,42 @@ async def websocket_endpoint(websocket: fastapi.WebSocket, token: str = Query(No
 @app.on_event("startup")
 async def startup():
     await database.connect()
+    # This line creates all the tables defined in models.py.
+    # It MUST be called before any queries are made.
     metadata.create_all(bind=engine)
 
     async with database.transaction():
-        admin_username = os.getenv("ADMIN_USERNAME", "admin")
-        query = users.select().where(users.c.username == admin_username)
-        if not await database.fetch_one(query):
-            admin_user = {
+        # Check if the 'System' organization for the super admin already exists
+        system_org_query = organizations.select().where(organizations.c.name == "System")
+        system_org = await database.fetch_one(system_org_query)
+        
+        # If it doesn't exist, create it along with the super admin user
+        if not system_org:
+            system_org_id = await database.execute(
+                query=organizations.insert(),
+                values={
+                    "name": "System",
+                    "required_email_domain": "system.local",
+                    "owner_id": None # We'll update this after creating the admin
+                }
+            )
+            
+            admin_username = os.getenv("ADMIN_USERNAME", "admin")
+            admin_user_values = {
+                "organization_id": system_org_id,
                 "username": admin_username,
-                "full_name": "Super Admin",
-                "email": os.getenv("ADMIN_EMAIL", "admin@iitj.ac.in"),
+                "full_name": "Platform Super Admin",
+                "email": os.getenv("ADMIN_EMAIL", "admin@system.local"),
                 "hashed_password": pwd_context.hash(os.getenv("ADMIN_PASSWORD", "admin123")),
                 "role": "super_admin"
             }
-            await database.execute(query=users.insert(), values=admin_user)
+            admin_id = await database.execute(query=users.insert(), values=admin_user_values)
+
+            # Now, link the new admin as the owner of the 'System' organization
+            await database.execute(
+                query=organizations.update().where(organizations.c.id == system_org_id),
+                values={"owner_id": admin_id}
+            )
 
 @app.post("/api/users/admin-create", status_code=status.HTTP_201_CREATED)
 async def admin_create_user(user: UserCreate, current_user: User = Depends(get_current_active_user)):
@@ -405,6 +485,49 @@ async def admin_create_user(user: UserCreate, current_user: User = Depends(get_c
     await manager.broadcast(json.dumps({"type": "users_updated"}))
     
     return {"message": "User created successfully by admin."}
+
+@app.post("/api/organizations/register", status_code=status.HTTP_201_CREATED)
+async def register_organization(org_data: OrganizationCreate):
+    # Check if organization name or domain already exists
+    query = organizations.select().where(organizations.c.name == org_data.org_name)
+    if await database.fetch_one(query):
+        raise HTTPException(status_code=400, detail="Organization name already exists.")
+    
+    query = organizations.select().where(organizations.c.required_email_domain == org_data.email_domain)
+    if await database.fetch_one(query):
+        raise HTTPException(status_code=400, detail="Email domain is already in use by another organization.")
+
+    # Validate that the admin's email matches the required domain
+    if not org_data.admin_email.endswith(org_data.email_domain):
+        raise HTTPException(status_code=400, detail=f"Admin email must use the @{org_data.email_domain} domain.")
+
+    # Use a database transaction to ensure all or nothing
+    async with database.transaction():
+        # Step 1: Create the organization record first, but without an owner_id
+        org_query = organizations.insert().values(
+            name=org_data.org_name,
+            required_email_domain=org_data.email_domain,
+            owner_id=None # We will update this after creating the user
+        )
+        org_id = await database.execute(org_query)
+
+        # Step 2: Create the admin user for this organization
+        hashed_password = pwd_context.hash(org_data.admin_password)
+        user_query = users.insert().values(
+            organization_id=org_id,
+            username=org_data.admin_username,
+            full_name=org_data.admin_full_name,
+            email=org_data.admin_email,
+            hashed_password=hashed_password,
+            role="org_admin" # Assign the new role
+        )
+        user_id = await database.execute(user_query)
+
+        # Step 3: Now, update the organization with the new admin's user_id
+        update_org_query = organizations.update().where(organizations.c.id == org_id).values(owner_id=user_id)
+        await database.execute(update_org_query)
+
+    return {"message": "Organization and admin account created successfully."}
 
 @app.delete("/users/delete/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(user_id: int, current_user: User = Depends(get_current_active_user)):

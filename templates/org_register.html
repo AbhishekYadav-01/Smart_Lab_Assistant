@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Register Organization - Smart Lab Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+    <style>
+body { font-family: 'Poppins', sans-serif; background-color: #0a0e27; color: white; }
+        .card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-color: rgba(255, 255, 255, 0.2); }
+        .form-control { background-color: rgba(0,0,0,0.2); color: white; border-color: rgba(255,255,255,0.3); }
+        /* --- ADD THESE LINES --- */
+        .form-label, .form-text, h5 {
+            color: #fff;
+        }
+        a, a:hover {
+            color: #fff;
+        }
+        /* --- END OF ADDITION --- */    </style>
+</head>
+<body>
+    <div class="container vh-100 d-flex justify-content-center align-items-center">
+        <div class="card p-4" style="width: 100%; max-width: 500px; color: white;">
+            <h2 class="text-center mb-4">Register Your Organization</h2>
+            <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+            <form id="orgRegisterForm">
+                <h5 class="mb-3">Organization Details</h5>
+                <div class="mb-3">
+                    <label for="orgName" class="form-label">Organization Name</label>
+                    <input type="text" class="form-control" id="orgName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="emailDomain" class="form-label">Required Email Domain (e.g., iitj.ac.in)</label>
+                    <input type="text" class="form-control" id="emailDomain" required>
+                </div>
+                <hr class="my-4">
+                <h5 class="mb-3">Your Admin Account</h5>
+                <div class="mb-3">
+                    <label for="adminUsername" class="form-label">Admin Username</label>
+                    <input type="text" class="form-control" id="adminUsername" required>
+                </div>
+                <div class="mb-3">
+                    <label for="adminFullName" class="form-label">Admin Full Name</label>
+                    <input type="text" class="form-control" id="adminFullName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="adminEmail" class="form-label">Admin Email</label>
+                    <input type="email" class="form-control" id="adminEmail" required>
+                </div>
+                <div class="mb-3">
+                    <label for="adminPassword" class="form-label">Admin Password</label>
+                    <input type="password" class="form-control" id="adminPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Register Organization</button>
+            </form>
+            <div class="text-center mt-3">
+                <a href="/org-login">Already have an organization? Login</a>
+            </div>
+        </div>
+    </div>
+<script>
+    document.getElementById('orgRegisterForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const errorMessage = document.getElementById('error-message');
+        const formData = {
+            org_name: document.getElementById('orgName').value,
+            email_domain: document.getElementById('emailDomain').value,
+            admin_username: document.getElementById('adminUsername').value,
+            admin_full_name: document.getElementById('adminFullName').value,
+            admin_email: document.getElementById('adminEmail').value,
+            admin_password: document.getElementById('adminPassword').value,
+        };
+
+        // Basic validation
+        if (!formData.admin_email.endsWith(formData.email_domain)) {
+            errorMessage.textContent = `Admin email must end with the required domain (@${formData.email_domain})`;
+            errorMessage.classList.remove('d-none');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/organizations/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Registration failed');
+            }
+            window.location.href = '/org-login';
+        } catch (error) {
+            errorMessage.textContent = error.message;
+            errorMessage.classList.remove('d-none');
+        }
+    });
+</script>
+</body>
+</html>

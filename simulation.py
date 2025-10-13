@@ -12,9 +12,10 @@ from database import database
 from models import users, labs, bookings
 
 class MultiAgentTrafficSystem:
-    def __init__(self, current_user: User, manager: 'ConnectionManager'):
+    def __init__(self, current_user: User, manager: 'ConnectionManager', org_id: int):
         self.current_user = current_user
         self.manager = manager 
+        self.org_id = org_id
         self.head_assistant_agent = HeadLabAssistantAgent() 
         self.lab_agents: List[LabAgent] = []
         self.agent_map: Dict[str, LabAgent] = {}
@@ -35,6 +36,8 @@ class MultiAgentTrafficSystem:
             return await self.get_schedule_for_range(start_of_week, end_of_week)
 
 
+# In mas_visualization/simulation.py
+
     async def handle_availability_query(self, query_text: str, websocket: fastapi.WebSocket):
         async def send_update(msg_type, data):
             await websocket.send_text(json.dumps({"type": msg_type, "data": data}))
@@ -53,33 +56,65 @@ class MultiAgentTrafficSystem:
                 await send_update("log", f"Confirmed! Searching for slots...")
 
                 student_count = self.conversation_state.get("student_count", 1)
-                requested_lab_name = self.conversation_state.get("lab_name")
-                requested_equipment = self.conversation_state.get("equipment")
-
                 request_start = datetime.fromisoformat(f"{self.conversation_state['date']}T{self.conversation_state['start_time']}").replace(tzinfo=timezone.utc)
                 request_end = datetime.fromisoformat(f"{self.conversation_state['date']}T{self.conversation_state['end_time']}").replace(tzinfo=timezone.utc)
 
+                        # --- NEW ADVANCED SEARCH LOGIC ---
                 target_agents = self.lab_agents
+                requested_lab_name = self.conversation_state.get("lab_name")
+                
+                # --- THIS IS THE FIX ---
+                # Ensure that we always have a list, even if the value is None
+                requested_equipment = self.conversation_state.get("equipment") or []
+                requested_features = self.conversation_state.get("features") or []
+                # --- END OF FIX ---
+
+                # Combine all keywords for a powerful search
+                all_keywords = requested_equipment + requested_features                
+
+                # Priority 1: If a specific lab name is requested, target only that lab.
                 if requested_lab_name:
                     await send_update("log", f"Searching specifically in {requested_lab_name}...")
                     target_agents = [agent for agent in self.lab_agents if agent.lab_name.lower() == requested_lab_name.lower()]
-                elif requested_equipment:
-                    await send_update("log", f"Filtering for labs with: {', '.join(requested_equipment)}")
-                    search_conditions = [sqlalchemy.or_(labs.c.equipment.ilike(f"%{item}%"), labs.c.description.ilike(f"%{item}%")) for item in requested_equipment]
-                    matching_labs_query = labs.select().where(sqlalchemy.and_(*search_conditions))
+                
+                # Priority 2: If there are keywords, filter labs from the database.
+                elif all_keywords:
+                    log_message = f"Filtering for labs with: {', '.join(all_keywords)}"
+                    await send_update("log", log_message)
+                    
+                    # Build a powerful query that checks both equipment and description for ALL keywords
+                    search_conditions = []
+                    for keyword in all_keywords:
+                        # Each keyword must match in either the equipment OR the description column
+                        keyword_condition = sqlalchemy.or_(
+                            labs.c.equipment.ilike(f"%{keyword}%"),
+                            labs.c.description.ilike(f"%{keyword}%")
+                        )
+                        search_conditions.append(keyword_condition)
+                    
+                    # All conditions must be met (AND)
+                    matching_labs_query = labs.select().where(
+                        labs.c.organization_id == self.org_id, 
+                        sqlalchemy.and_(*search_conditions)
+                    )
+                    
                     matching_lab_records = await database.fetch_all(matching_labs_query)
                     matching_lab_names = {lab['name'] for lab in matching_lab_records}
                     target_agents = [agent for agent in self.lab_agents if agent.lab_name in matching_lab_names]
+
                     if not target_agents:
-                        await send_update("log", "No labs found matching your specific criteria.")
+                        await send_update("log", "No labs found matching all your specific criteria.")
                         await send_update("availability_results", [])
                         self.conversation_state = {}
                         return
 
-                await send_update("log", f"Broadcasting request to {len(target_agents)} relevant Lab Agent(s)...")
+                # If no specific criteria, all labs in the organization are targeted by default.
+                # --- END OF NEW SEARCH LOGIC ---
+
+                await send_update("log", f"Checking availability in {len(target_agents)} relevant lab(s)...")
                 tasks = []
                 for agent in target_agents:
-                    lab_record = await database.fetch_one(labs.select().where(labs.c.name == agent.lab_name))
+                    lab_record = await database.fetch_one(labs.select().where(labs.c.name == agent.lab_name, labs.c.organization_id == self.org_id))
                     bookings_query = bookings.select().where(bookings.c.lab_id == lab_record.id)
                     current_schedule = await database.fetch_all(bookings_query)
                     tasks.append(agent.check_availability(request_start, request_end, student_count, current_schedule, lab_record.operating_start_time, lab_record.operating_end_time))
@@ -97,17 +132,17 @@ class MultiAgentTrafficSystem:
                     })
                 
                 await send_update("availability_results", results)
-
                 self.conversation_state = {}
 
         except Exception as e:
             self.conversation_state = {}
-            error_message = f"An error occurred. Let's start over. (Details: {e})"
+            error_message = f"An error occurred during the search. Let's start over. (Details: {e})"
             await send_update("error", error_message)
 
             
     async def get_schedule_for_range(self, start_date: datetime, end_date: datetime) -> dict:
         query = bookings.select().where(
+            bookings.c.organization_id == self.org_id,
             bookings.c.start_time >= start_date,
             bookings.c.start_time < end_date
         )
@@ -116,7 +151,7 @@ class MultiAgentTrafficSystem:
         schedule_data = {agent.lab_name: [] for agent in self.lab_agents}
         
         for booking in all_bookings:
-            lab_query = labs.select().where(labs.c.id == booking.lab_id)
+            lab_query = labs.select().where(labs.c.id == booking.lab_id, labs.c.organization_id == self.org_id)
             lab = await database.fetch_one(lab_query)
             if lab and lab.name in schedule_data:
                 schedule_data[lab.name].append({
@@ -183,8 +218,8 @@ class MultiAgentTrafficSystem:
             await websocket.send_text(json.dumps({"type": "error", "data": "Booking failed: Cannot book a lab for a time in the past."}))
             return
 
-        lab_record = await database.fetch_one(labs.select().where(labs.c.name == lab_name))
-        user_record = await database.fetch_one(users.select().where(users.c.username == self.current_user.username))
+        lab_record = await database.fetch_one(labs.select().where(labs.c.name == lab_name, labs.c.organization_id == self.org_id))
+        user_record = await database.fetch_one(users.select().where(users.c.username == self.current_user.username, users.c.organization_id == self.org_id))
         
         if lab_record and user_record:
             target_agent = self.agent_map.get(f"LabAgent_{lab_name.replace(' ', '_')}")
@@ -215,6 +250,7 @@ lab_record.operating_end_time)
                 priority = 2
             
             query = bookings.insert().values(
+                organization_id=self.org_id,
                 lab_id=lab_record.id,
                 user_id=user_record.id,
                 start_time=start_time,
@@ -295,7 +331,7 @@ lab_record.operating_end_time)
         await self.broadcast_schedule_update()
                                
     async def initialize_system(self):
-            lab_records = await database.fetch_all(query=labs.select())
+            lab_records = await database.fetch_all(query=labs.select().where(labs.c.organization_id == self.org_id))
             lab_names = [lab['name'] for lab in lab_records]
             lab_agent_names = [f"LabAgent_{name.replace(' ', '_')}" for name in lab_names]
             

@@ -30,43 +30,45 @@ class HeadLabAssistantAgent:
 
     async def parse_user_query(self, query_text: str, history: Optional[Dict] = None) -> Optional[Dict]:
         """
-        Parses a query, gathers all required details sequentially (including student count), 
+        Parses complex user queries, gathers all required details sequentially (including equipment/features), 
         generates a final confirmation question, and understands user approval.
         """
         history_str = json.dumps(history) if history else "{}"
         conversation_status = history.get("status", "gathering_info")
 
+        # --- THIS IS THE ONLY PART THAT CHANGES ---
         parsing_task = f"""
-        You are a conversational AI lab assistant. Your goal is to gather all necessary information sequentially, confirm details, and understand user approval.
+        You are a world-class AI lab assistant, an expert at understanding complex, natural language search queries for laboratory bookings.
 
         - The current state of gathered information is: {history_str}
         - The current conversation status is: "{conversation_status}"
         - The user's latest message is: "{query_text}"
         - **IMPORTANT: If the user says "today", you MUST use the current date: {datetime.now(timezone.utc).strftime('%A, %Y-%m-%d')}.**
 
-        Follow these steps based on the conversation status:
+        Your primary goal is to extract **ALL relevant search criteria**. You should look for:
+        1.  `lab_name`: The specific name of a lab.
+        2.  `equipment`: A list of specific, physical items (e.g., ["soldering iron", "3D printer"]).
+        3.  `features`: A list of general purposes or concepts (e.g., ["circuit design", "running simulations"]).
 
-        1.  If status is "gathering_info":
-            - Merge information from the user's message into the history.
-            - **Your required information sequence is: `date`, `start_time`, `end_time`, `student_count`.**
-            - If `date` is missing, ask for it.
-            - If `date` is present but `start_time` is missing, ask for the start time.
-            - If `start_time` is present but `end_time` is missing, ask for the end time.
-            - **If `end_time` is present but `student_count` is missing, ask for the number of students.**
-            - Once all four are present, change the status to "pending_confirmation".
+        Follow this **new conversational logic**:
+        1.  First, gather `date`, `start_time`, `end_time`, and `student_count` sequentially.
+        2.  **After you have all four of those details**, your next `clarification_question` MUST be: "Got it. Do you need a lab with any specific equipment or features? For example, 'a 3D printer' or a 'lab for machine learning'."
+        3.  Process the user's answer to that question. If they provide requirements, add them to `equipment` or `features`. If they say "no" or "any lab is fine", you can proceed.
+        4.  **Only after the user has responded to the requirements question**, change the `status` to "pending_confirmation" and ask for final approval with a full summary.
+        5.  If the user approves, set `user_approved` to `true` and `clarification_question` to `null`.
 
-        2.  If status is "pending_confirmation":
-            - Analyze the user's message for intent.
-            - If the intent is **approval** (e.g., "yes", "go ahead", "correct"), you MUST set `user_approved` to `true` and set `clarification_question` to `null`. This is critical to stop the loop.
-            - If the intent is a **modification** (e.g., "change to 30 students"), update the details, remove `user_approved`, change status back to "gathering_info", and ask a new question if needed.
+        **Example of the new step:**
+        - History: {{"date": "...", "start_time": "...", "end_time": "...", "student_count": 25}}
+        - Your next response's `clarification_question` MUST be: "Got it. Do you need a lab with any specific equipment or features? For example, 'a 3D printer' or a 'lab for machine learning'."
 
-        - When the status becomes "pending_confirmation" for the first time, your `clarification_question` MUST be a full summary including the student count.
-        Example: "Perfect! I have the following details: A booking for **30 students** on 2025-10-12 from 14:00 to 16:00. Shall I go ahead and check for availability?"
-
-        - If you don't have a `student_count` yet, you can default it to 1 in your internal thought process, but you must still ask the user to confirm.
+        - History: {{... "clarification_question": "Got it. Do you need a lab with any specific equipment..."}}
+        - User's message: "Yes, we need a lab for machine learning."
+        - Your next response MUST change status and ask for final confirmation, like this: {{"date": "...", ..., "features": ["machine learning"], "status": "pending_confirmation", "clarification_question": "Perfect! I have the following details: A booking for 25 students for a lab for machine learning on ... from ... to .... Shall I go ahead and check for availability?"}}
 
         Respond ONLY with a valid JSON object containing the full, updated state.
         """
+        # --- END OF THE CHANGED PART ---
+
         response = await self.agent.run(task=parsing_task)
         try:
             content = str(response.messages[-1].content)
@@ -76,8 +78,7 @@ class HeadLabAssistantAgent:
                 return json.loads(json_str)
             return {"status": "gathering_info", "clarification_question": "I'm sorry, I had trouble understanding that. Could you please rephrase?"}
         except (json.JSONDecodeError, IndexError):
-            return {"status": "gathering_info", "clarification_question": "I'm having a little trouble understanding. Could you tell me the date you need?"}
-                
+            return {"status": "gathering_info", "clarification_question": "I'm having a little trouble parsing that. Could you tell me the date you need?"}                        
 class LabAgent:
     def __init__(self, lab_name: str, capacity: int, all_agent_names: List[str]):
         self.lab_name = lab_name
