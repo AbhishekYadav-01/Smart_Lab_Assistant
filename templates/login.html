@@ -161,10 +161,10 @@
           <div class="mb-3">
             <label for="organization" class="form-label">Organization</label>
             <select class="form-select" id="organization" required aria-required="true" aria-label="Select your organization">
-              <option value="" disabled selected>Select your organization</option>
-              {% for org in organizations %}
-              <option value="{{ org.id }}">{{ org.name }}</option>
-              {% endfor %}
+                <option value="" disabled selected style="background-color: #071033;">Select your organization</option>
+                {% for org in organizations %}
+                <option value="{{ org.id }}" style="background-color: #071033;">{{ org.name }}</option>
+                {% endfor %}
             </select>
           </div>
 

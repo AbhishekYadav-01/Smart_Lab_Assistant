@@ -138,7 +138,7 @@
 <body>
   <div class="center-wrap">
     <div class="card">
-      <h2>Create Member Account</h2>
+      <h2 style="color: #fff;">Create Member Account</h2>
       <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
 
       <form id="registerForm" novalidate>
@@ -147,7 +147,7 @@
           <select class="form-select" id="organization" required>
             <option value="" disabled selected>Select your organization</option>
             {% for org in organizations %}
-            <option value="{{ org.id }}" data-domain="{{ org.required_email_domain }}">{{ org.name }}</option>
+            <option value="{{ org.id }}" data-domain="{{ org.required_email_domain }}" style="background-color: #545a61; color: #fff;">{{ org.name }}</option>
             {% endfor %}
           </select>
         </div>
