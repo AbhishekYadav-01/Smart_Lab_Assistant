@@ -1,99 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Register Organization - Smart Lab Assistant</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
-    <style>
-body { font-family: 'Poppins', sans-serif; background-color: #0a0e27; color: white; }
-        .card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-color: rgba(255, 255, 255, 0.2); }
-        .form-control { background-color: rgba(0,0,0,0.2); color: white; border-color: rgba(255,255,255,0.3); }
-        /* --- ADD THESE LINES --- */
-        .form-label, .form-text, h5 {
-            color: #fff;
-        }
-        a, a:hover {
-            color: #fff;
-        }
-        /* --- END OF ADDITION --- */    </style>
+  <meta charset="UTF-8" />
+  <title>Register Organization - Smart Lab Assistant</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-1: #071033;
+      --bg-2: #0a0e27;
+      --glass: rgba(255,255,255,0.06);
+      --glass-2: rgba(255,255,255,0.04);
+      --accent-a: #6ee7b7;
+      --accent-b: #60a5fa;
+      --muted: rgba(255,255,255,0.82);
+      --radius: 14px;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background:
+        radial-gradient(800px 400px at 10% 20%, rgba(96,165,250,0.05), transparent 8%),
+        radial-gradient(700px 350px at 90% 80%, rgba(110,231,183,0.04), transparent 5%),
+        linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .center-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--glass), var(--glass-2));
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 520px;
+      padding: 1.8rem;
+      box-shadow: 0 14px 40px rgba(2,6,23,0.55);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: '';
+      position: absolute;
+      top: -25%;
+      left: -25%;
+      width: 150%;
+      height: 50%;
+      background: linear-gradient(90deg, rgba(110,231,183,0.05), rgba(96,165,250,0.05));
+      transform: rotate(15deg);
+      pointer-events: none;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    h5 {
+      margin-bottom: 1rem;
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .form-control {
+      background-color: rgba(0,0,0,0.25);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: .7rem .9rem;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: rgba(96,165,250,0.85);
+      box-shadow: 0 6px 22px rgba(96,165,250,0.12);
+      background-color: rgba(0,0,0,0.18);
+    }
+
+    .form-label {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .btn-primary {
+      border-radius: 10px;
+      padding: .6rem;
+      font-weight: 600;
+      background-image: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+      border: none;
+      box-shadow: 0 8px 26px rgba(96,165,250,0.08);
+      transition: all 0.25s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 34px rgba(96,165,250,0.12);
+    }
+
+    .alert {
+      border-radius: 8px;
+      padding: .65rem .9rem;
+    }
+
+    a, a:hover {
+      color: #fff;
+      text-decoration: none;
+    }
+
+    hr {
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    .link-area {
+      text-align: center;
+      margin-top: 1.1rem;
+    }
+
+    .link-area a {
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 1.2rem; }
+      h2 { font-size: 1.15rem; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container vh-100 d-flex justify-content-center align-items-center">
-        <div class="card p-4" style="width: 100%; max-width: 500px; color: white;">
-            <h2 class="text-center mb-4">Register Your Organization</h2>
-            <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
-            <form id="orgRegisterForm">
-                <h5 class="mb-3">Organization Details</h5>
-                <div class="mb-3">
-                    <label for="orgName" class="form-label">Organization Name</label>
-                    <input type="text" class="form-control" id="orgName" required>
-                </div>
-                <div class="mb-3">
-                    <label for="emailDomain" class="form-label">Required Email Domain (e.g., iitj.ac.in)</label>
-                    <input type="text" class="form-control" id="emailDomain" required>
-                </div>
-                <hr class="my-4">
-                <h5 class="mb-3">Your Admin Account</h5>
-                <div class="mb-3">
-                    <label for="adminUsername" class="form-label">Admin Username</label>
-                    <input type="text" class="form-control" id="adminUsername" required>
-                </div>
-                <div class="mb-3">
-                    <label for="adminFullName" class="form-label">Admin Full Name</label>
-                    <input type="text" class="form-control" id="adminFullName" required>
-                </div>
-                <div class="mb-3">
-                    <label for="adminEmail" class="form-label">Admin Email</label>
-                    <input type="email" class="form-control" id="adminEmail" required>
-                </div>
-                <div class="mb-3">
-                    <label for="adminPassword" class="form-label">Admin Password</label>
-                    <input type="password" class="form-control" id="adminPassword" required>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">Register Organization</button>
-            </form>
-            <div class="text-center mt-3">
-                <a href="/org-login">Already have an organization? Login</a>
-            </div>
+  <div class="center-wrap">
+    <div class="card">
+      <h2>Register Your Organization</h2>
+      <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+
+      <form id="orgRegisterForm" novalidate>
+        <h5>Organization Details</h5>
+        <div class="mb-3">
+          <label for="orgName" class="form-label">Organization Name</label>
+          <input type="text" class="form-control" id="orgName" required>
         </div>
+        <div class="mb-3">
+          <label for="emailDomain" class="form-label">Required Email Domain (e.g., iitj.ac.in)</label>
+          <input type="text" class="form-control" id="emailDomain" required>
+        </div>
+
+        <hr class="my-4">
+
+        <h5>Your Admin Account</h5>
+        <div class="mb-3">
+          <label for="adminUsername" class="form-label">Admin Username</label>
+          <input type="text" class="form-control" id="adminUsername" required>
+        </div>
+        <div class="mb-3">
+          <label for="adminFullName" class="form-label">Admin Full Name</label>
+          <input type="text" class="form-control" id="adminFullName" required>
+        </div>
+        <div class="mb-3">
+          <label for="adminEmail" class="form-label">Admin Email</label>
+          <input type="email" class="form-control" id="adminEmail" required>
+        </div>
+        <div class="mb-3">
+          <label for="adminPassword" class="form-label">Admin Password</label>
+          <input type="password" class="form-control" id="adminPassword" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Register Organization</button>
+      </form>
+
+      <div class="link-area">
+        <a href="/org-login">Already have an organization? Login</a>
+      </div>
     </div>
-<script>
+  </div>
+
+  <script>
     document.getElementById('orgRegisterForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const errorMessage = document.getElementById('error-message');
-        const formData = {
-            org_name: document.getElementById('orgName').value,
-            email_domain: document.getElementById('emailDomain').value,
-            admin_username: document.getElementById('adminUsername').value,
-            admin_full_name: document.getElementById('adminFullName').value,
-            admin_email: document.getElementById('adminEmail').value,
-            admin_password: document.getElementById('adminPassword').value,
-        };
+      event.preventDefault();
+      const errorMessage = document.getElementById('error-message');
+      errorMessage.classList.add('d-none');
 
-        // Basic validation
-        if (!formData.admin_email.endsWith(formData.email_domain)) {
-            errorMessage.textContent = `Admin email must end with the required domain (@${formData.email_domain})`;
-            errorMessage.classList.remove('d-none');
-            return;
+      const formData = {
+        org_name: document.getElementById('orgName').value.trim(),
+        email_domain: document.getElementById('emailDomain').value.trim(),
+        admin_username: document.getElementById('adminUsername').value.trim(),
+        admin_full_name: document.getElementById('adminFullName').value.trim(),
+        admin_email: document.getElementById('adminEmail').value.trim(),
+        admin_password: document.getElementById('adminPassword').value,
+      };
+
+      // Basic validation
+      if (!formData.admin_email.endsWith(formData.email_domain)) {
+        errorMessage.textContent = `Admin email must end with the required domain (@${formData.email_domain})`;
+        errorMessage.classList.remove('d-none');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/organizations/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Registration failed');
         }
 
-        try {
-            const response = await fetch('/api/organizations/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Registration failed');
-            }
-            window.location.href = '/org-login';
-        } catch (error) {
-            errorMessage.textContent = error.message;
-            errorMessage.classList.remove('d-none');
-        }
+        window.location.href = '/org-login';
+      } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.classList.remove('d-none');
+      }
     });
-</script>
+  </script>
 </body>
 </html>

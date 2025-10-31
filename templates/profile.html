@@ -18,15 +18,19 @@
           --muted:#6b7280;
           --radius-lg:16px;
           --shadow-md: 0 8px 30px rgba(16,24,40,0.08);
+          --modal-shadow: 0 30px 60px rgba(16,24,40,0.12);
         }
         body.dark-mode{
           --bg-color:#05060a;
-          --text-color:#ffffff;
+          --text-color:#e6eef8;
           --card-bg-color:#0f1220;
           --border-color:rgba(255,255,255,0.06);
-          --muted: rgba(255,255,255,0.7);
+          --muted: rgba(255,255,255,0.72);
           --shadow-md: 0 12px 46px rgba(0,0,0,0.6);
+          --modal-shadow: 0 30px 90px rgba(0,0,0,0.7);
         }
+
+        /* Base layout */
         body{
           margin:0;
           font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -48,68 +52,109 @@
         .btn-edit { background: var(--primary-gradient); color: white; border: none; padding:.56rem .9rem; border-radius:10px; font-weight:600; }
         @media (max-width:880px) { .profile-wrap { grid-template-columns: 1fr; } }
 
-
-
         /* Navbar Theme Support */
         .navbar {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+            background: linear-gradient(135deg, #3b82f6, #7c3aed) !important;
             transition: background 0.35s ease;
         }
-        
         body.dark-mode .navbar {
             background: linear-gradient(135deg, #1a1f3a, #0a0e27) !important;
         }
-        
         .navbar-toggler-icon {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
-        
-        .theme-toggle {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            margin-right: 10px;
+        .theme-toggle { display: flex; align-items: center; padding: 0.5rem 1rem; margin-right: 10px; }
+        .theme-toggle-label { color: var(--text-color); margin-right: 10px; font-weight: 500; }
+        .form-check-input { width: 3.2em !important; height: 1.6em !important; cursor: pointer; }
+        .form-check-input:checked { background-color: #4cc9f0; border-color: #4cc9f0; }
+        .nav-link { color: rgba(255,255,255,0.95) !important; font-weight: 500; padding: 0.5rem 1rem !important; border-radius: 8px; transition: all 0.3s ease; margin: 0 3px; }
+        .nav-link:hover, .nav-link.active { background-color: rgba(255, 255, 255, 0.12); color: #4cc9f0 !important; }
+        body.dark-mode .text-muted { color: var(--muted) !important; }
+        body.dark-mode .navbar-brand { color: var(--text-color) !important; }
+
+        .modal-content {
+            background: var(--card-bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--modal-shadow);
+            transition: background .25s ease, color .2s ease;
         }
-        
-        .theme-toggle-label {
-            color: var(--text-light);
-            margin-right: 10px;
-            font-weight: 500;
+        .modal-header, .modal-footer {
+            border-color: rgba(0,0,0,0.06);
         }
-        
-        .form-check-input {
-            background-color: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            width: 3.2em !important;
-            height: 1.6em !important;
-            cursor: pointer;
-        }
-        
-        .form-check-input:checked {
-            background-color: #4cc9f0;
-            border-color: #4cc9f0;
-        }
-        
-        .nav-link {
-            color: var(--text-light) !important;
-            font-weight: 500;
-            padding: 0.5rem 1rem !important;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            margin: 0 3px;
-        }
-        
-        .nav-link:hover, .nav-link.active {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: #4cc9f0 !important;
-        }
-        body.dark-mode .text-muted {
-          color: var(--muted) !important;
-        }
-        body.dark-mode .navbar-brand {
-          color: var(--text-color) !important;
+        .modal-title {
+            color: var(--text-color);
+            font-weight: 600;
         }
 
+        .modal .form-label {
+            color: var(--muted);
+            font-size: .92rem;
+        }
+        .form-control {
+            background: #fff;
+            color: #212529;
+            border: 1px solid var(--border-color);
+            box-shadow: none;
+            transition: background .18s ease, border-color .18s ease, color .18s ease;
+        }
+        .form-control:focus {
+            outline: 3px solid rgba(102,126,234,0.12);
+            box-shadow: none;
+            border-color: #667eea;
+        }
+
+        body.dark-mode .form-control {
+            background: rgba(255,255,255,0.03);
+            color: var(--text-color);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        body.dark-mode .modal-header, body.dark-mode .modal-footer {
+            border-top-color: rgba(255,255,255,0.04);
+            border-bottom-color: rgba(255,255,255,0.04);
+        }
+
+        .modal .btn-primary {
+            background: var(--primary-gradient);
+            color: #fff;
+            border: none;
+            font-weight:600;
+            box-shadow: 0 6px 24px rgba(102,126,234,0.14);
+        }
+        body.dark-mode .modal .btn-primary {
+            background: linear-gradient(135deg,#5668d4,#7a3fb2);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-backdrop.show {
+            opacity: 0.45;
+            transition: opacity .18s ease;
+        }
+        body.dark-mode .modal-backdrop.show {
+            background-color: rgba(0,0,0,0.65);
+            opacity: 1; /* darker overlay for dark-mode so modal is readable */
+        }
+        body:not(.dark-mode) .modal-backdrop.show {
+            background-color: rgba(0,0,0,0.28);
+            opacity: 1;
+        }
+
+        .modal .form-label, .modal .form-text {
+            color: var(--muted);
+        }
+
+        .btn-close {
+            filter: none;
+        }
+        body.dark-mode .btn-close {
+            filter: invert(1) brightness(1.2);
+            opacity: 0.9;
+        }
+
+        .btn:focus, .form-control:focus {
+            outline-offset: 2px;
+        }
     </style>
 </head>
 <body>
@@ -118,12 +163,10 @@
             <a class="navbar-brand" href="/dashboard">
                 <i class="fas fa-robot"></i> Smart Lab Assistant
             </a>
-            
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" 
                     aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                     <li class="nav-item me-3">
@@ -135,24 +178,9 @@
                             </div>
                         </div>
                     </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="/dashboard">
-                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/profile">
-                            <i class="fas fa-user me-1"></i> My Profile
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="logoutBtn">
-                            <i class="fas fa-sign-out-alt me-1"></i> Logout
-                        </a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/profile"><i class="fas fa-user me-1"></i> My Profile</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="logoutBtnNav"><i class="fas fa-sign-out-alt me-1"></i> Logout</a></li>
                 </ul>
             </div>
         </div>
@@ -203,25 +231,29 @@
                     <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#passwordModal">Change Password</button>
                 </div>
                 <div class="mt-4 text-end">
-                    <button class="btn btn-outline-danger" id="logoutBtn">Logout</button>
+                    <button class="btn btn-outline-danger" id="logoutBtnCard">Logout</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header"><h5 class="modal-title">Change Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-          <form id="passwordForm">
+          <div class="modal-header">
+            <h5 class="modal-title">Change Password</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="passwordForm" novalidate>
             <div class="modal-body">
               <div class="mb-3">
                 <label for="current_password" class="form-label">Current Password</label>
-                <input type="password" class="form-control" id="current_password" required>
+                <input type="password" class="form-control" id="current_password" required autocomplete="current-password">
               </div>
               <div class="mb-3">
                 <label for="new_password" class="form-label">New Password</label>
-                <input type="password" class="form-control" id="new_password" required>
+                <input type="password" class="form-control" id="new_password" required autocomplete="new-password">
+                <div class="form-text">Use at least 8 characters with letters and numbers.</div>
               </div>
             </div>
             <div class="modal-footer">
@@ -253,7 +285,8 @@
             emailValue: document.getElementById('emailValue'),
             editBtn: document.getElementById('editProfileBtn'),
             saveBtn: document.getElementById('saveProfileBtn'),
-            logoutBtn: document.getElementById('logoutBtn'),
+            logoutBtn: document.getElementById('logoutBtnCard'),
+            logoutBtnNav: document.getElementById('logoutBtnNav'),
             downloadBtn: document.getElementById('downloadProfileBtn'),
             passwordForm: document.getElementById('passwordForm'),
         };
@@ -273,7 +306,7 @@
             currentUserData = user;
             const fullName = user.full_name || user.username;
             const initials = fullName.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
-            
+
             elements.avatar.textContent = initials;
             elements.fullName.textContent = fullName;
             elements.emailMini.textContent = user.email;
@@ -283,11 +316,13 @@
         };
 
         // --- Event Listeners ---
-        elements.logoutBtn.addEventListener('click', () => {
+        const logoutHandler = () => {
             localStorage.removeItem('accessToken');
             showToast("👋 Logged out successfully!");
             setTimeout(() => window.location.href = '/login', 1500);
-        });
+        };
+        elements.logoutBtn.addEventListener('click', logoutHandler);
+        elements.logoutBtnNav.addEventListener('click', logoutHandler);
 
         elements.editBtn.addEventListener('click', () => {
             elements.editBtn.style.display = 'none';
@@ -304,7 +339,7 @@
                     body: JSON.stringify({ full_name: newFullName })
                 });
                 if (!response.ok) throw new Error((await response.json()).detail);
-                
+
                 const updatedUser = await response.json();
                 populateUI(updatedUser); // Repopulate with fresh data
                 showToast("✅ Profile updated successfully!");
@@ -320,7 +355,7 @@
             e.preventDefault();
             const currentPassword = document.getElementById('current_password').value;
             const newPassword = document.getElementById('new_password').value;
-            
+
             try {
                 const response = await fetch('/api/users/change-password', {
                     method: 'POST',
@@ -375,14 +410,14 @@ END:VCARD`;
 
         // Theme Toggle Functionality
         const themeSwitch = document.getElementById('themeSwitch');
-        
+
         // Check for saved theme preference
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme) {
-            document.body.classList.add(currentTheme);
+            if (currentTheme === 'dark-mode') document.body.classList.add('dark-mode');
             if (currentTheme === 'dark-mode') themeSwitch.checked = true;
         }
-        
+
         // Theme switch event listener
         themeSwitch.addEventListener('change', function() {
             if (themeSwitch.checked) {

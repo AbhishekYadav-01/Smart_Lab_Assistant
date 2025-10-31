@@ -1005,6 +1005,61 @@
 }
 /* --- End of Fix --- */
 
+#scheduleModal .modal-content {
+  background: var(--card-bg-color) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+}
+
+/* Make header/footer match theme */
+#scheduleModal .modal-header,
+#scheduleModal .modal-footer {
+  border-color: rgba(0,0,0,0.06);
+  background: linear-gradient(135deg, rgba(102,126,234,0.05), rgba(118,75,162,0.03));
+  color: var(--text-color);
+}
+
+/* Ensure the body and schedule grid use theme vars */
+#scheduleModal .modal-body {
+  background: transparent;
+  color: var(--text-color);
+}
+
+/* Force the schedule grid cells to follow theme (stronger specificity) */
+#scheduleModal .grid-header,
+#scheduleModal .grid-cell,
+#scheduleModal .grid-lab-name,
+#scheduleModal .booking-pill {
+  background: var(--card-bg-color) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+/* Make booking pill actions & icons visible in dark mode */
+#scheduleModal .booking-actions .btn,
+#scheduleModal .booking-pill .booking-main strong,
+#scheduleModal .booking-pill .booking-user small {
+  color: var(--text-color) !important;
+}
+
+/* Backdrop darker in dark mode so modal pops */
+.modal-backdrop.show {
+  background-color: rgba(0,0,0,0.45) !important;
+}
+body.dark-mode .modal-backdrop.show {
+  background-color: rgba(0,0,0,0.75) !important;
+}
+
+/* Small accessibility improvement for focus outlines inside modal */
+#scheduleModal .booking-pill:focus,
+#scheduleModal .view-btn:focus {
+  outline: 3px solid rgba(102,126,234,0.14);
+  outline-offset: 2px;
+}
+
         </style>
   </head>
   <body>

@@ -1,70 +1,312 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Organization Login - Smart Lab Assistant</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
-    <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #0a0e27; color: white; }
-        .card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-color: rgba(255, 255, 255, 0.2); }
-        .form-control { background-color: rgba(0,0,0,0.2); color: white; border-color: rgba(255,255,255,0.3); }
-        .form-label { color: #fff; }
-        a, a:hover { color: #fff; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Organization Login - Smart Lab Assistant</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <!-- Bootstrap (kept) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-dark: #0a0e27;
+      --panel: rgba(255,255,255,0.06);
+      --panel-strong: rgba(255,255,255,0.08);
+      --muted: rgba(255,255,255,0.82);
+      --accent-a: #6ee7b7;
+      --accent-b: #60a5fa;
+      --radius: 14px;
+      --glass-border: rgba(255,255,255,0.08);
+    }
+
+    html,body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background:
+        radial-gradient(800px 400px at 10% 20%, rgba(96,165,250,0.05), transparent 8%),
+        radial-gradient(700px 350px at 90% 80%, rgba(110,231,183,0.04), transparent 5%),
+        linear-gradient(180deg, var(--bg-dark) 0%, #071033 100%);
+      color: white;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Centering container */
+    .center-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    /* Card */
+    .login-card {
+      width: 100%;
+      max-width: 460px;
+      border-radius: calc(var(--radius) + 4px);
+      background: linear-gradient(180deg, var(--panel), var(--panel-strong));
+      border: 1px solid var(--glass-border);
+      padding: 1.6rem;
+      box-shadow: 0 12px 40px rgba(2,6,23,0.55);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle top gradient line */
+    .login-card::before {
+      content: '';
+      position: absolute;
+      left: -40%;
+      top: -30%;
+      width: 180%;
+      height: 60%;
+      background: linear-gradient(90deg, rgba(110,231,183,0.06), rgba(96,165,250,0.06));
+      transform: rotate(12deg);
+      pointer-events:none;
+    }
+
+    h2 {
+      margin: 0 0 0.45rem 0;
+      font-weight: 600;
+      color: #fff;
+      font-size: 1.25rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-weight: 300;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Form controls */
+    .form-control {
+      background-color: rgba(0,0,0,0.22);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: .72rem .9rem;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    .form-control:focus {
+      outline: none;
+      box-shadow: 0 6px 20px rgba(96,165,250,0.12);
+      border-color: rgba(96,165,250,0.9);
+      background-color: rgba(0,0,0,0.14);
+    }
+    .form-label { color: #fff; font-weight:500; }
+
+    .btn-primary {
+      border-radius: 10px;
+      padding: .6rem .9rem;
+      font-weight:600;
+      background-image: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+      border: none;
+      box-shadow: 0 10px 30px rgba(96,165,250,0.08);
+    }
+    .btn-primary:disabled {
+      opacity: .7;
+      transform: none;
+    }
+
+    .links {
+      font-size: 0.92rem;
+      margin-top: .85rem;
+      display:flex;
+      flex-direction:column;
+      gap: .45rem;
+      align-items:center;
+    }
+    .links a {
+      color: white;
+      text-decoration: none;
+      opacity: .95;
+    }
+    .links a.small {
+      opacity:.85;
+      font-size: .85rem;
+    }
+
+    /* Error alert */
+    #error-message {
+      margin-bottom: 0.8rem;
+      border-radius: 8px;
+      padding: .6rem .9rem;
+    }
+
+    /* Small helper */
+    .helper {
+      font-size: .85rem;
+      color: rgba(255,255,255,0.7);
+      margin-top: .5rem;
+    }
+
+    /* Make responsive */
+    @media (max-width: 520px) {
+      .login-card { padding: 1.1rem; }
+      h2 { font-size: 1.1rem; }
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container vh-100 d-flex justify-content-center align-items-center">
-        <div class="card p-4" style="width: 100%; max-width: 400px; color: white;">
-            <h2 class="text-center mb-4">Organization Admin Login</h2>
-            <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
-            <form id="orgLoginForm">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Admin Username</label>
-                    <input type="text" class="form-control" id="username" required />
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" required />
-                </div>
-                <button type="submit" class="btn btn-primary w-100">Login</button>
-            </form>
-            <div class="text-center mt-3">
-                <a href="/org-register">Don't have an organization? Register one</a>
-            </div>
-            <div class="text-center mt-2">
-                <a href="/" class="small">&larr; Back to main selection</a>
-            </div>
+  <div class="center-wrap">
+    <div class="login-card" role="region" aria-labelledby="org-login-title">
+      <h2 id="org-login-title" class="text-center">Organization Admin Login</h2>
+      <p class="muted text-center" style="margin-bottom:1.1rem;">Please sign in to manage your organization's labs</p>
+
+      <div id="error-message" class="alert alert-danger d-none" role="alert" aria-live="polite"></div>
+
+      <form id="orgLoginForm" novalidate>
+        <div class="mb-3">
+          <label for="username" class="form-label">Admin Username</label>
+          <input type="text" id="username" class="form-control" required autocomplete="username" inputmode="text" />
         </div>
+
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" id="password" class="form-control" required autocomplete="current-password" />
+        </div>
+
+        <button id="submitBtn" type="submit" class="btn btn-primary w-100" aria-live="polite">
+          <span id="btnText">Login</span>
+          <span id="btnSpinner" class="visually-hidden" aria-hidden="true" style="margin-left:.5rem;">
+            <!-- inline spinner (no external links added) -->
+            <svg width="18" height="18" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+              <circle cx="25" cy="25" r="20" stroke="white" stroke-opacity="0.18" stroke-width="6"></circle>
+              <path d="M45 25A20 20 0 1 1 25 5" stroke="white" stroke-width="6" stroke-linecap="round"></path>
+            </svg>
+          </span>
+        </button>
+      </form>
+
+      <div class="links text-center">
+        <a href="/org-register" id="registerLink">Don't have an organization? Register one</a>
+        <a href="/" class="small" id="backLink">&larr; Back to main selection</a>
+      </div>
+
+      <p class="helper text-center" style="margin-top:.9rem;">We never store your password in the browser. Tokens are saved to localStorage on successful login.</p>
     </div>
-<script>
-    document.getElementById("orgLoginForm").addEventListener("submit", async function (event) {
-        event.preventDefault();
-        const errorMessage = document.getElementById("error-message");
-        
-        const formData = new FormData();
-        formData.append("username", document.getElementById("username").value);
-        formData.append("password", document.getElementById("password").value);
+  </div>
+
+  <script>
+    (function(){
+      const form = document.getElementById('orgLoginForm');
+      const errEl = document.getElementById('error-message');
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const btnSpinner = document.getElementById('btnSpinner');
+
+      // utility: show error
+      function showError(message) {
+        errEl.textContent = message;
+        errEl.classList.remove('d-none');
+      }
+      function clearError() {
+        errEl.textContent = '';
+        errEl.classList.add('d-none');
+      }
+
+      // simple client-side validation helper
+      function validate() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        if (!username) return 'Please enter the admin username.';
+        if (!password) return 'Please enter the password.';
+        return '';
+      }
+
+      // Disable/enable UI during submission
+      function setSubmitting(active) {
+        if (active) {
+          submitBtn.setAttribute('disabled', 'true');
+          btnSpinner.classList.remove('visually-hidden');
+          submitBtn.style.opacity = '0.95';
+        } else {
+          submitBtn.removeAttribute('disabled');
+          btnSpinner.classList.add('visually-hidden');
+          submitBtn.style.opacity = '';
+        }
+      }
+
+      form.addEventListener('submit', async function(e){
+        e.preventDefault();
+        clearError();
+
+        const validationErr = validate();
+        if (validationErr) {
+          showError(validationErr);
+          return;
+        }
+
+        setSubmitting(true);
 
         try {
-            // Call the new /org-token endpoint
-            const response = await fetch("/org-token", {
-              method: "POST",
-              body: formData,
-            });
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.detail || "Login failed");
+          const formData = new FormData();
+          formData.append('username', document.getElementById('username').value.trim());
+          formData.append('password', document.getElementById('password').value);
+
+          // POST to /org-token (kept as in your original file)
+          const resp = await fetch('/org-token', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!resp.ok) {
+            // try to parse JSON error safely
+            let errMsg = 'Login failed';
+            try {
+              const errJson = await resp.json();
+              if (errJson && errJson.detail) errMsg = errJson.detail;
+              else if (errJson && errJson.error) errMsg = errJson.error;
+            } catch(_) {
+              // fallback to status text
+              errMsg = resp.statusText || errMsg;
             }
-            const data = await response.json();
-            localStorage.setItem("accessToken", data.access_token);
-            // Redirect to the admin panel after successful login
-            window.location.href = "/admin";
-        } catch (error) {
-            errorMessage.textContent = error.message;
-            errorMessage.classList.remove("d-none");
+            throw new Error(errMsg);
+          }
+
+          const data = await resp.json();
+
+          // store token and redirect (exact same behavior as before)
+          if (data && data.access_token) {
+            try {
+              localStorage.setItem('accessToken', data.access_token);
+            } catch (storageErr) {
+              // storage may fail in some contexts; still proceed to redirect
+              console.warn('Could not save token to localStorage', storageErr);
+            }
+            // redirect to admin
+            window.location.href = '/admin';
+          } else {
+            throw new Error('Login succeeded but no token was returned.');
+          }
+        } catch (err) {
+          // display error to user
+          showError(err.message || 'An unknown error occurred.');
+        } finally {
+          setSubmitting(false);
         }
       });
-</script>
+
+      // accessibility: press Enter on inputs triggers submit already; ensure focus states
+      // small enhancement: hide error once user starts typing again
+      ['username','password'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => clearError());
+      });
+    })();
+  </script>
 </body>
 </html>
